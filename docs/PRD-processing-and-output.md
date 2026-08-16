@@ -156,7 +156,7 @@ Four slots, filled in this fixed order, each with its own rule (not just "top 4 
 | Slot | Rule | Fallback if unavailable |
 |---|---|---|
 | **1 — Certainty match** | Highest-scoring live wishlist item or Giver-logged gift-idea note that clears the milestone gate | Highest-scoring pure interest-derived candidate |
-| **2 — Personally anchored** | Best candidate traceable to *this requesting Giver's* own note, rank, or shared interest/activity (Design Principle 3) | If no such signal exists at all, this slot is filled by the next-highest candidate and the rationale honestly states it's community/crowd-derived rather than fabricating a personal angle |
+| **2 — Personally anchored** | Best candidate traceable to *this requesting Giver's* own note, rank, or shared interest/activity (Design Principle 3), **distinct from the candidate and subcategory already used by Slot 1** | If the only personal signal was already consumed by Slot 1, or none exists at all, this slot is filled by the next-highest candidate and the rationale honestly states it's community/crowd-derived rather than fabricating a personal angle |
 | **3 — Best remaining, distinct category** | Highest `FinalScore` candidate not sharing a subcategory with Slots 1–2 | If the pool is too thin to diversify, allow a repeat subcategory but flag it internally for taxonomy/coverage gaps |
 | **4 — Best remaining, distinct category** | Same diversity rule as Slot 3, applied against Slots 1–3 | Same as above |
 
@@ -178,10 +178,18 @@ After the four are shown, the Giver is offered (not forced) a lightweight prompt
 ---
 
 ## 8. Data Model Additions (delta on BRD Section 10)
-- `Interest` (taxonomy): add `min_intimacy_tier` (low/medium/high) and `milestone_sentimentality_tier` fields to support Sections 5.2–5.3.
-- `InterestRanking`: add computed field `weighted_score` (output of Section 4.4, cached per request rather than recomputed from raw rankings each time, for performance).
-- `RecommendationResult`: extend `suggestion_list` entries with `origin_trace` (array: which stream(s)/signals produced this candidate) and `slot_type` (certainty / personally_anchored / diversified) so the rationale layer and future analytics can both use it.
-- `RecommendationRequest`: no change, but `budget_override` now explicitly documented as applying *after* the milestone price band, not replacing it.
+
+> **Reconciliation note (settled against the implemented schema, 2026-08-16):**
+> This layer requires **zero Prisma migrations** for V1. The tier metadata is a
+> property of gift *ideas/categories*, which already live in code (`IDEA_BANK`
+> in `src/lib/recommendation.ts`), not the taxonomy table; and the result shape
+> is already a JSON blob. See §12 for the full reconciliation record.
+
+- **Gift-idea tiers (in code, not DB):** add `minIntimacyTier` (`low`/`medium`/`high`) and `sentimentalityTier` (`low`/`medium`/`high`) to the engine's `Idea` type and tag each `IDEA_BANK` entry. These drive Sections 5.2–5.3. They are attributes of a gift category, not of an `InterestTag`, so they do **not** touch `prisma/schema.prisma`.
+- `InterestRanking` `weightedScore`: **deferred, not persisted.** The Section 4.4 output is computed in-memory per request. A cached DB column is premature for V1 (heuristic pass, "a few seconds" per BRD §11) and adds invalidation cost — revisit only if profiling demands it.
+- `RecommendationResult`: extend each entry of the existing `suggestions` JSON field with `originTrace` (array: which stream(s)/signals produced this candidate) and `slotType` (`certainty` / `personally_anchored` / `diversified`). This is a serialized-shape change only — **no migration** (the column is already `String`/JSON).
+- `RecommendationRequest`: no change, but `budgetOverride` now explicitly documented as applying *after* the milestone price band, not replacing it.
+- `OCCASIONS` (`src/lib/constants.ts`): add `anniversary` as a first-class occasion so the §5.2 gate can apply the high-sentimentality anniversary profile deterministically (it cannot ride in through free-text `other`, which maps to the neutral default). Additive and safe.
 
 ---
 
@@ -207,6 +215,21 @@ In addition to BRD Section 14's product-level metrics, this layer should instrum
 ---
 
 ## 11. Open Questions Carried Forward From BRD Section 13 (processing-specific)
-- **Ranking UX** (ordinal vs. 1–5 rating) directly affects the precision of the weighted aggregation in Section 4.4 — an ordinal "top 3 picks" is cheaper for contributors but yields coarser confidence data than a 1–5 scale per tag. Needs a decision before the aggregation formula's constants can be tuned.
+- **Ranking UX** — **RESOLVED (2026-08-16).** The onboarding/friend-adding PRD locked **ordinal** ranking, and the implemented code confirms it: `InterestRanking.rankValue` is a dense integer `1..n` where **1 = best**, capped at 10, with overflow/unranked stored as `rankValue=null, confidenceUnsure=true`. §4.4 therefore assumes ordinal input and must (a) invert ordinal position into a weight (rank 1 = highest), and (b) because ordinal is coarser than a 1–5 scale, lean the formula on **origin priority + corroboration** rather than fine-grained rank deltas. Implementation note: the engine's `AggregatedInterest.avgRank` ("0–1, higher = better") is the inverse of stored ordinal position, so the receiver-signal loader must convert `1..n` → normalized `1.0..0`.
 - **Recommendation engine implementation approach** (rules-based per this PRD vs. an LLM/agent reasoning directly over the structured inputs): this PRD assumes the rules-based approach for V1 auditability and rationale-traceability (Section 7 depends on being able to name the exact origin of each candidate); an LLM-driven approach would need equivalent traceability guarantees before it could replace this pipeline without weakening Design Principle 3.
-- **Taxonomy ownership** matters more here than in the original BRD estimate — the `min_intimacy_tier` and `milestone_sentimentality_tier` fields in Section 8 add real editorial judgment calls to taxonomy curation, not just tagging.
+- **Taxonomy ownership** matters more here than in the original BRD estimate — the `minIntimacyTier` and `sentimentalityTier` fields in Section 8 add real editorial judgment calls to gift-idea curation, not just tagging.
+
+---
+
+## 12. Reconciliation Decisions (settled against BRD v0.2 + implemented scaffold, 2026-08-16)
+
+Six points were reconciled against the BRD, the committed Prisma schema, `src/lib/constants.ts`, and the collaborator's implemented onboarding code (`src/app/give/`) before engine work begins.
+
+| # | Point | Decision |
+|---|---|---|
+| 1 | **Occasion list** | Add `anniversary` as a first-class value in `OCCASIONS` (`constants.ts`). The BRD list (birthday/holiday/just_because/congratulations/other) lacks it, and it can't ride in through free-text `other` (which maps to the neutral default) — the anniversary high-sentimentality profile must be deterministic. Additive/safe; onboarding does not gate on `OCCASIONS`. Final gate keys: `birthday, anniversary, congratulations, holiday, just_because, other`. |
+| 2 | **Tier placement** | `minIntimacyTier` / `sentimentalityTier` live on the engine's `Idea` entries in `IDEA_BANK` (code), **not** on the taxonomy table. They are gift-category attributes, not interest-tag attributes, and the idea bank already lives in code. No migration. |
+| 3 | **Data-model additions** | **Zero Prisma migrations for V1.** Tiers → code (pt 2); `weightedScore` → computed in-memory, not persisted; `originTrace`/`slotType` → extend the existing `RecommendationResult.suggestions` JSON blob; `RecommendationRequest` unchanged. `prisma/schema.prisma` is not touched, so no schema coordination with the collaborator. |
+| 4 | **Naming** | Codebase convention: camelCase field/type names, snake_case enum-like string values. Fields: `minIntimacyTier`, `sentimentalityTier`, `originTrace`, `slotType`, `weightedScore`. Values: `slotType` ∈ `certainty` \| `personally_anchored` \| `diversified`; tiers ∈ `low` \| `medium` \| `high`. (3-tier sentimentality collapses the PRD's "medium–high"/"medium" into one floor; the price-band multiplier carries the finer distinction. Promote to a 0–1 number in code if needed later.) |
+| 5 | **Slot 1 vs Slot 2 de-dup** | Slot 2 must be distinct (candidate **and** subcategory) from Slot 1; if the only personal signal was already consumed by Slot 1, Slot 2 falls through to its documented fallback. Distinctness now spans all four slots (see §6). |
+| 6 | **Ranking UX** | Resolved: ordinal, `rankValue` dense `1..n` (1 = best), cap 10, overflow → `null`+`confidenceUnsure`. §4.4 inverts ordinal → weight and leans on origin + corroboration over fine rank deltas; the signal loader converts `1..n` → normalized `1.0..0` (see §11). |
