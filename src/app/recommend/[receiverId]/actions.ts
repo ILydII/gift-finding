@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { buildRecommendationInput, giverOwnsReceiver } from "@/lib/recommend-data";
 import { generateRecommendations } from "@/lib/recommendation";
+import { GIFTING_PHILOSOPHIES } from "@/lib/constants";
+
+const VALID_PHILOSOPHY = new Set<string>(GIFTING_PHILOSOPHIES.map((p) => p.value));
 
 // Flow 6 (FR-26–31) server actions. Recommendations are a Giver action, so every
 // action requires a signed-in Giver who actually added this receiver.
@@ -34,9 +37,18 @@ export async function requestRecommendation(
   const budgetParsed = budgetSchema.safeParse(formData.get("budget"));
   const budgetOverride = budgetParsed.success ? budgetParsed.data : null;
 
+  // Per-occasion gifting style (feedback #4): captured on this request, not the profile.
+  const philosophyTags = formData
+    .getAll("philosophy")
+    .map(String)
+    .filter((v) => VALID_PHILOSOPHY.has(v));
+  const riskRaw = String(formData.get("risk") ?? "");
+  const riskTolerance = riskRaw === "safe" || riskRaw === "bold" ? riskRaw : null;
+
   const input = await buildRecommendationInput(giverId, receiverId, {
     occasion,
     budgetOverride,
+    styleOverride: { philosophyTags, riskTolerance },
   });
   const output = generateRecommendations(input);
 

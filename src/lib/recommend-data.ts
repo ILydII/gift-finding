@@ -41,7 +41,11 @@ export async function giverOwnsReceiver(
 export async function buildRecommendationInput(
   giverId: string,
   receiverId: string,
-  opts: { occasion?: string | null; budgetOverride?: number | null },
+  opts: {
+    occasion?: string | null;
+    budgetOverride?: number | null;
+    styleOverride?: { philosophyTags?: string[]; riskTolerance?: string | null } | null;
+  },
 ): Promise<RecommendationInput> {
   const [
     receiver,
@@ -181,18 +185,28 @@ export async function buildRecommendationInput(
 
   const relType = relationship?.relationshipType ?? null;
 
+  // Gifting style: the saved profile is the default, but a per-request override
+  // (from the gift-finder form) wins — style/budget belong to the gift, not the account.
+  const ov = opts.styleOverride;
+  const giverStyle =
+    style || ov
+      ? {
+          philosophyTags: ov?.philosophyTags?.length
+            ? ov.philosophyTags
+            : style
+              ? parseJsonArray(style.philosophyTags)
+              : [],
+          riskTolerance: ov?.riskTolerance ?? style?.riskTolerance ?? null,
+          budgetMin: style?.defaultBudgetMin ?? null,
+          budgetMax: style?.defaultBudgetMax ?? null,
+        }
+      : null;
+
   return {
     wishlist: wishlistSignals,
     interests: interestSignals,
     receiver: { name: receiver?.name ?? null, birthYear: receiver?.birthYear ?? null },
-    giverStyle: style
-      ? {
-          philosophyTags: parseJsonArray(style.philosophyTags),
-          riskTolerance: style.riskTolerance,
-          budgetMin: style.defaultBudgetMin,
-          budgetMax: style.defaultBudgetMax,
-        }
-      : null,
+    giverStyle,
     occasion: opts.occasion ?? null,
     relationship: relType
       ? {

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstName } from "@/lib/give-data";
 import { giverOwnsReceiver } from "@/lib/recommend-data";
-import { OCCASIONS } from "@/lib/constants";
+import { OCCASIONS, GIFTING_PHILOSOPHIES, RISK_TOLERANCES } from "@/lib/constants";
 import type { GiftSuggestion, OriginStream, SlotType } from "@/lib/recommendation";
 import { requestRecommendation, submitFeedback, addReasoning } from "./actions";
 
@@ -241,28 +241,29 @@ export default async function RecommendPage({
   }
 
   // ---- Request form ----
-  const hasStyle = Boolean(
-    await prisma.giftingStyleProfile.findUnique({ where: { userId: giverId } }),
-  );
+  // Prefill gifting style from the giver's saved profile, but let them tune it
+  // per occasion (feedback: budget + style belong to the gift, not the account).
+  const savedStyle = await prisma.giftingStyleProfile.findUnique({
+    where: { userId: giverId },
+  });
+  let savedPhilosophies: string[] = [];
+  try {
+    const parsed = JSON.parse(savedStyle?.philosophyTags ?? "[]");
+    if (Array.isArray(parsed)) savedPhilosophies = parsed.map(String);
+  } catch {
+    savedPhilosophies = [];
+  }
+  const savedRisk = savedStyle?.riskTolerance ?? null;
+  const savedBudget = savedStyle?.defaultBudgetMax ?? null;
 
   return (
     <div className="mx-auto w-full max-w-xl px-6 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Find a gift for {name}</h1>
       <p className="mt-2 text-foreground/60">
-        Pick the occasion and (optionally) a budget. We&apos;ll combine {name}&apos;s
-        wishlist, what their friends know, and what you&apos;ve noted — into four ideas,
-        each with the reason it&apos;s there.
+        Set the occasion, budget, and how you want to give — just for this gift.
+        We&apos;ll combine {name}&apos;s wishlist, what their friends know, and what
+        you&apos;ve noted into four ideas, each with the reason it&apos;s there.
       </p>
-
-      {!hasStyle && (
-        <p className="mt-4 rounded-lg border border-black/10 bg-black/[.02] px-4 py-3 text-sm text-foreground/60 dark:border-white/10 dark:bg-white/[.03]">
-          Tip: set your{" "}
-          <Link href="/profile" className="underline underline-offset-2">
-            gifting style
-          </Link>{" "}
-          (budget, how you like to give) and these get more tailored.
-        </p>
-      )}
 
       <form action={requestRecommendation.bind(null, receiverId)} className="mt-6 flex flex-col gap-5">
         <div>
@@ -299,13 +300,58 @@ export default async function RecommendPage({
               type="number"
               min={1}
               max={100000}
-              placeholder="Up to…"
+              placeholder={savedBudget ? `Up to $${savedBudget} (your usual)` : "Up to…"}
               className="w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
             />
           </div>
           <p className="mt-1 text-xs text-foreground/50">
-            Overrides your default gifting-style budget for this one gift.
+            Just for this gift — overrides your usual budget.
           </p>
+        </div>
+
+        <fieldset className="border-0 p-0">
+          <legend className="text-sm font-medium">How do you want to give — for this gift?</legend>
+          <p className="mt-1 text-xs text-foreground/50">
+            Shapes the flavour of the four ideas. Starts from your usual style; change it for this occasion.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {GIFTING_PHILOSOPHIES.map((p) => (
+              <label
+                key={p.value}
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-foreground/50 has-[:checked]:bg-foreground/5 dark:border-white/20"
+              >
+                <input
+                  type="checkbox"
+                  name="philosophy"
+                  value={p.value}
+                  defaultChecked={savedPhilosophies.includes(p.value)}
+                  className="accent-foreground"
+                />
+                {p.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div>
+          <span className="text-sm font-medium">How safe or bold?</span>
+          <div className="mt-2 flex gap-2">
+            {RISK_TOLERANCES.map((r) => (
+              <label
+                key={r.value}
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-foreground/50 has-[:checked]:bg-foreground/5 dark:border-white/20"
+              >
+                <input
+                  type="radio"
+                  name="risk"
+                  value={r.value}
+                  defaultChecked={savedRisk === r.value}
+                  className="accent-foreground"
+                />
+                {r.label}
+              </label>
+            ))}
+          </div>
         </div>
 
         <button
