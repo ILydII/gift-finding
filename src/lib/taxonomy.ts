@@ -104,6 +104,18 @@ export const DISPLAY_GROUPS: DisplayGroup[] = [
     ],
   },
   {
+    header: "Sports",
+    slugs: [
+      "sports-football-soccer",
+      "sports-basketball",
+      "sports-baseball",
+      "sports-tennis",
+      "sports-golf",
+      "sports-running-events",
+      "sports-cycling-races",
+    ],
+  },
+  {
     header: "Style",
     slugs: [
       "fashion_style-sneakers",
@@ -135,10 +147,10 @@ const RELATIONSHIP_GROUP_ORDER: Record<string, string[]> = {
   partner: ["Style", "Fitness & Wellness", "Home, Garden & Pets", "Food & Drink"],
   parent: ["Home, Garden & Pets", "Food & Drink", "Reading", "Making & Craft"],
   child: ["Games", "Tech", "Making & Craft", "Outdoors & Travel"],
-  sibling: ["Games", "Music & Sound", "Outdoors & Travel", "Tech"],
-  close_friend: ["Food & Drink", "Outdoors & Travel", "Games", "Music & Sound"],
-  friend: ["Food & Drink", "Games", "Outdoors & Travel", "Music & Sound"],
-  coworker: ["Food & Drink", "Reading", "Tech", "Home, Garden & Pets"],
+  sibling: ["Games", "Sports", "Music & Sound", "Outdoors & Travel", "Tech"],
+  close_friend: ["Food & Drink", "Sports", "Outdoors & Travel", "Games", "Music & Sound"],
+  friend: ["Food & Drink", "Sports", "Games", "Outdoors & Travel", "Music & Sound"],
+  coworker: ["Sports", "Food & Drink", "Reading", "Tech", "Home, Garden & Pets"],
   acquaintance: ["Food & Drink", "Reading", "Home, Garden & Pets"],
   other: [],
 };

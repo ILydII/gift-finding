@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // G3 (PRD §3A/§4): the selection rendered back as a numbered list. Drag (via
 // a dedicated handle, Pointer Events so it works the same for mouse and
@@ -31,7 +31,12 @@ export function RankList({
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const liveRef = useRef<HTMLParagraphElement>(null);
   const nextKey = useRef(0);
-  const rowElsRef = useRef<Map<string, HTMLLIElement>>(new Map());
+  const rowElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const rowsRef = useRef(rows);
+
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
 
   function announce(text: string) {
     if (liveRef.current) liveRef.current.textContent = text;
@@ -49,48 +54,67 @@ export function RankList({
   // Drag reorder: a handle starts the drag; as the pointer crosses another
   // row's vertical midpoint, the dragged row moves to that position live.
   // Pointer Events (not HTML5 dnd) so mouse and touch behave the same way.
+  // Tracking lives on `window`, not the handle itself: pointer capture can
+  // throw (some browsers reject it for a pointerId they don't recognize as
+  // currently active) and previously left the whole feature silently dead
+  // if it did — window-level listeners work whether or not capture succeeds.
   function handlePointerDown(e: React.PointerEvent, key: string) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Best-effort only — the window listeners below track the drag either way.
+    }
     setDraggingKey(key);
   }
 
-  function handlePointerMove(e: React.PointerEvent) {
+  useEffect(() => {
     if (!draggingKey) return;
-    e.preventDefault();
 
-    const fromIndex = rows.findIndex((r) => r.key === draggingKey);
-    if (fromIndex === -1) return;
-
-    let toIndex = fromIndex;
-    for (let i = 0; i < rows.length; i++) {
-      const el = rowElsRef.current.get(rows[i].key);
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-        toIndex = i;
-        break;
+    function findRowIndexAt(clientY: number, current: RankRow[]): number {
+      for (let i = 0; i < current.length; i++) {
+        const el = rowElsRef.current.get(current[i].key);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (clientY >= rect.top && clientY <= rect.bottom) return i;
       }
+      return -1;
     }
 
-    if (toIndex !== fromIndex) {
-      const copy = [...rows];
+    function onMove(e: PointerEvent) {
+      const current = rowsRef.current;
+      const fromIndex = current.findIndex((r) => r.key === draggingKey);
+      if (fromIndex === -1) return;
+
+      const toIndex = findRowIndexAt(e.clientY, current);
+      if (toIndex === -1 || toIndex === fromIndex) return;
+
+      const copy = [...current];
       const [moved] = copy.splice(fromIndex, 1);
       copy.splice(toIndex, 0, moved);
       setRows(copy);
     }
-  }
 
-  function handlePointerUp() {
-    if (!draggingKey) return;
-    const finalIndex = rows.findIndex((r) => r.key === draggingKey);
-    if (finalIndex !== -1) {
-      announce(
-        `${rows[finalIndex].label}, now position ${finalIndex + 1} of ${rows.length}`,
-      );
+    function onUp() {
+      const current = rowsRef.current;
+      const finalIndex = current.findIndex((r) => r.key === draggingKey);
+      if (finalIndex !== -1) {
+        announce(
+          `${current[finalIndex].label}, now position ${finalIndex + 1} of ${current.length}`,
+        );
+      }
+      setDraggingKey(null);
     }
-    setDraggingKey(null);
-  }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [draggingKey]);
 
   function remove(index: number) {
     const removed = rows[index];
@@ -122,14 +146,7 @@ export function RankList({
 
       <ol className="flex flex-col gap-1">
         {rows.map((row, i) => (
-          <li
-            key={row.key}
-            ref={(el) => {
-              if (el) rowElsRef.current.set(row.key, el);
-              else rowElsRef.current.delete(row.key);
-            }}
-            className="contents"
-          >
+          <li key={row.key} className="contents">
             {i === 0 && (
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-foreground/50">
                 Counts most
@@ -141,6 +158,10 @@ export function RankList({
               </p>
             )}
             <div
+              ref={(el) => {
+                if (el) rowElsRef.current.set(row.key, el);
+                else rowElsRef.current.delete(row.key);
+              }}
               className={`flex items-center gap-2 rounded-lg border border-black/10 bg-background px-3 py-2 transition dark:border-white/10 ${
                 draggingKey === row.key
                   ? "opacity-60 shadow-md ring-2 ring-foreground/20"
@@ -151,9 +172,6 @@ export function RankList({
                 type="button"
                 aria-label={`Drag to reorder ${row.label}`}
                 onPointerDown={(e) => handlePointerDown(e, row.key)}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
                 style={{ touchAction: "none" }}
                 className="flex h-9 w-6 shrink-0 cursor-grab items-center justify-center text-foreground/30 transition hover:text-foreground/60 active:cursor-grabbing"
               >
