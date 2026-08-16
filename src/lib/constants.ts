@@ -31,9 +31,13 @@ export const RELATIONSHIP_CLOSENESS: Record<string, number> = {
   other: 0.4,
 };
 
-/** Flow 6 — occasion dropdown. "other" allows free text. */
+/** Flow 6 — occasion dropdown. "other" allows free text.
+ *  `anniversary` extends the BRD's five occasions: the Processing & Output PRD
+ *  (§5.2) needs it as a first-class milestone so its high-sentimentality gate
+ *  applies deterministically (it can't ride in through free-text "other"). */
 export const OCCASIONS = [
   { value: "birthday", label: "Birthday" },
+  { value: "anniversary", label: "Anniversary" },
   { value: "holiday", label: "Holiday" },
   { value: "just_because", label: "Just because" },
   { value: "congratulations", label: "Congratulations" },
