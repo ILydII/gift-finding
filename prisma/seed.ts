@@ -4,11 +4,13 @@
 // Run via: npm run db:seed
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
-const adapter = new PrismaLibSql({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
+// Migrations/seed should run against the direct connection (DIRECT_URL) when
+// available; fall back to DATABASE_URL otherwise.
+const adapter = new PrismaPg({
+  connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
 

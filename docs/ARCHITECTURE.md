@@ -14,7 +14,7 @@ The source of truth for behaviour is the BRD:
 | Framework | Next.js 16 (App Router) + React 19, TypeScript |
 | Styling | Tailwind CSS v4 |
 | Auth | Auth.js (NextAuth v5) — Credentials + Google, JWT sessions |
-| ORM / DB | Prisma 7 + libSQL driver adapter, SQLite locally (Postgres-ready) |
+| ORM / DB | Prisma 7 + node-postgres driver adapter, PostgreSQL (Supabase) |
 | Validation | Zod |
 
 ## Shared foundation (build on top of this — coordinate before changing)

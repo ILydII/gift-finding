@@ -14,14 +14,18 @@ the BRD and how to split the work is in
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 ·
-Auth.js (NextAuth v5) · Prisma 7 (libSQL adapter) · SQLite locally
-(Postgres-ready) · Zod.
+Auth.js (NextAuth v5) · Prisma 7 (node-postgres adapter) · PostgreSQL
+(Supabase) · Zod.
 
 ## Prerequisites
 
 - **Node.js 20+** (developed on Node 24) and **npm 11+**
 - **Git**
-- That's it — the database is a local SQLite file, no server to install.
+- **A PostgreSQL database.** Easiest is a free [Supabase](https://supabase.com)
+  project (same as production). Alternatively run Postgres locally with Docker:
+  `docker run --name giftdb -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres`
+  then use `postgresql://postgres:postgres@localhost:5432/postgres` for both
+  URLs below.
 
 ## First-time setup
 
@@ -29,17 +33,35 @@ Auth.js (NextAuth v5) · Prisma 7 (libSQL adapter) · SQLite locally
 git clone https://github.com/ILydII/gift-finding.git
 cd gift-finding
 npm install
-cp .env.example .env          # then set AUTH_SECRET (see below)
-npx auth secret               # generates AUTH_SECRET and writes it to .env
-npm run db:migrate            # creates the SQLite db and applies migrations
+cp .env.example .env          # (PowerShell: Copy-Item .env.example .env)
+```
+
+Then edit `.env`:
+
+- Set **`DATABASE_URL`** (pooled) and **`DIRECT_URL`** (direct) from your
+  Postgres/Supabase project — see `.env.example` for exactly which Supabase
+  strings to copy.
+- Generate an auth secret: `npx auth secret` (writes `AUTH_SECRET` to `.env`).
+
+Then create the schema and start:
+
+```bash
+npm run db:migrate            # applies migrations to your database
 npm run db:seed               # loads the interest taxonomy + a demo account
 npm run dev                   # http://localhost:3000
 ```
 
-> On Windows PowerShell, replace `cp .env.example .env` with
-> `Copy-Item .env.example .env`.
-
 **Demo login:** `demo@example.com` / `password123` (created by the seed).
+
+> **Why not SQLite locally?** A Prisma schema has a single `provider` and
+> migrations are provider-specific, so mixing SQLite (local) and Postgres
+> (prod) means two incompatible migration histories. Using Postgres everywhere
+> keeps one schema and one migration history identical to production.
+
+## Deploying to Vercel
+
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full Vercel CLI +
+Supabase walkthrough (provision the DB, run migrations, set env vars, deploy).
 
 ### A note on `npm install`
 
@@ -58,12 +80,14 @@ npm approve-scripts <package-name>
 Anyone joining the project runs the same **First-time setup** above. A few things
 to know so everyone's machine matches:
 
-- **`.env` is not committed** (it holds secrets). Copy `.env.example` and run
-  `npx auth secret` locally. Each person has their own `AUTH_SECRET`; that's
-  fine — it doesn't need to match across machines.
-- **The database is local.** `dev.db` is gitignored. `npm run db:migrate` +
-  `npm run db:seed` rebuilds it from the committed migrations and seed, so
-  everyone starts from the same data.
+- **`.env` is not committed** (it holds secrets). Copy `.env.example`, add your
+  database URLs, and run `npx auth secret` locally. Each person has their own
+  `AUTH_SECRET`; that's fine — it doesn't need to match across machines.
+- **The database is Postgres.** Each dev uses their own database (a personal
+  free Supabase project, or local Docker Postgres) so you don't stomp on each
+  other's data. `npm run db:migrate && npm run db:seed` builds an identical
+  schema + starter data from the committed migrations and seed. Keep production
+  as its own separate Supabase database.
 - **After every `git pull`,** if `prisma/` changed run
   `npm install && npm run db:migrate` to pick up new dependencies and schema
   migrations. If only `package.json` changed, `npm install` is enough.
@@ -124,7 +148,7 @@ src/
   app/                 # routes (one folder per BRD flow — see ARCHITECTURE.md)
   components/          # shared UI (Nav, SectionStub)
   lib/
-    prisma.ts          # Prisma client (libSQL adapter) singleton
+    prisma.ts          # Prisma client (node-postgres adapter) singleton
     auth.ts            # Auth.js config
     constants.ts       # domain constants (relationships, occasions, …)
     recommendation.ts  # V1 heuristic recommendation engine (pure)

@@ -10,6 +10,9 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrations use the direct (non-pooled) connection when set, since
+    // pooled/transaction-mode connections can't run some DDL. Falls back to
+    // DATABASE_URL for local setups with a single connection string.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

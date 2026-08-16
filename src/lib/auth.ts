@@ -49,6 +49,9 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // Trust the deployment host (Vercel sets the URL via VERCEL_URL). Required so
+  // Auth.js accepts the callback URL in production behind the platform proxy.
+  trustHost: true,
   // Credentials provider requires JWT sessions. OAuth accounts are still
   // persisted via the Prisma adapter.
   session: { strategy: "jwt" },

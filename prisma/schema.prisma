@@ -2,10 +2,10 @@
 // Maps to BRD v0.2 Section 10 (High-Level Data Model), plus the Auth.js
 // adapter tables and an invite/taxonomy model needed to make the loop work.
 //
-// Provider is SQLite for zero-setup local dev. The schema is written to be
-// Postgres-ready: we avoid enums (unsupported on SQLite) in favour of String
-// fields with documented allowed values, and store small arrays as JSON
-// strings. Swapping `provider` to "postgresql" later needs no model rewrite.
+// Provider is PostgreSQL (Supabase in production, and locally via a Supabase
+// or Docker connection string — see README). To stay portable we avoid enums
+// in favour of String fields with documented allowed values, and store small
+// arrays as JSON strings.
 //
 // Docs: https://pris.ly/d/prisma-schema
 
@@ -15,7 +15,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // ---------------------------------------------------------------------------
