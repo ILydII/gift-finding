@@ -49,3 +49,6 @@ next-env.d.ts
 
 /src/generated/prisma
 .claude/settings.local.json
+
+.vercel
+.env*
