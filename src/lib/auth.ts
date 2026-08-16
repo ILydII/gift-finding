@@ -81,23 +81,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin", verifyRequest: "/signin/check-email" },
   providers,
   callbacks: {
+    // `user` is only present on the initial sign-in that mints this token —
+    // exactly when the pending-profile cookie (name/birth-year collected
+    // alongside auth, see pending-profile.ts) needs to be applied. Doing
+    // this here, before the token is finalized, matters: applying it later
+    // (e.g. in an `events.signIn` handler) updates the database but the JWT
+    // has already been minted from the stale pre-update user object, so the
+    // session would keep showing the old value until the next full sign-in.
+    async jwt({ token, user }) {
+      if (user?.id) {
+        try {
+          await applyPendingProfile(user.id);
+          const fresh = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { name: true },
+          });
+          if (fresh?.name) token.name = fresh.name;
+        } catch (err) {
+          console.error("Applying pending profile on sign-in failed:", err);
+        }
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
-    },
-  },
-  events: {
-    // Sign-in collects optional name/birth-year alongside auth (see
-    // pending-profile.ts) — apply it once a session exists. Best-effort:
-    // a failed apply must never block auth.
-    async signIn({ user }) {
-      try {
-        if (user?.id) await applyPendingProfile(user.id);
-      } catch (err) {
-        console.error("Applying pending profile on sign-in failed:", err);
-      }
     },
   },
 });

@@ -7,6 +7,7 @@ import {
   GIFTING_PHILOSOPHIES,
   PLANNING_STYLES,
   RISK_TOLERANCES,
+  GENDER_OPTIONS,
 } from "@/lib/constants";
 import {
   savePersonalInfo,
@@ -14,6 +15,9 @@ import {
   addWishlistItem,
   updateWishlistItem,
   deleteWishlistItem,
+  addMyInterest,
+  removeMyInterest,
+  setMyInterestConfidence,
 } from "@/app/profile/actions";
 
 export const dynamic = "force-dynamic";
@@ -21,19 +25,22 @@ export const dynamic = "force-dynamic";
 const ERROR_COPY: Record<string, string> = {
   birth_year: "That birth year doesn't look right — try a 4-digit year.",
   wishlist: "Give the item a short title (that's the only required field).",
+  interest: "Type something before adding it.",
 };
 
 const SAVED_COPY: Record<string, string> = {
   personal: "Saved.",
   style: "Saved — this shapes the gift ideas you get as a Giver.",
   wishlist: "Saved.",
+  interests: "Saved.",
 };
 
-// The signed-in user's own data: personal info (FR-2/3), gifting-style
-// preferences (FR-24/25), and wishlist (FR-9/10/11). None of this is a
-// first-screen ask — everything here is optional and edited at their own
-// pace, which is why it lives here rather than in onboarding or the claim
-// flow (PRD ruling #13).
+// The signed-in user's own data: personal info (FR-2/3), their own
+// interests (FR-4/6/7), gifting-style preferences (FR-24/25), and wishlist
+// (FR-9/10/11). None of this is a first-screen ask — everything here is
+// optional and edited at their own pace, whether or not anyone's ever
+// invited them (see PRD addendum — self-starting Givers never go through
+// the claim flow, so this is the only place their own interests live).
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile">) {
@@ -46,15 +53,33 @@ export default async function ProfilePage({
     redirect(`/signin?callbackUrl=${encodeURIComponent("/profile")}`);
   }
 
-  const [user, giftingStyle, wishlist] = await Promise.all([
+  const [user, giftingStyle, wishlist, myInterests] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id } }),
     prisma.giftingStyleProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.wishlistItem.findMany({
       where: { ownerId: session.user.id },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.interest.findMany({
+      where: { ownerId: session.user.id },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
   if (!user) redirect("/signin");
+
+  const interestTags = await prisma.interestTag.findMany({
+    where: {
+      slug: {
+        in: myInterests.map((i) => i.taxonomyTag).filter((s): s is string => Boolean(s)),
+      },
+    },
+  });
+  const tagLabelBySlug = new Map(interestTags.map((t) => [t.slug, t.label]));
+  const interests = myInterests.map((i) => ({
+    id: i.id,
+    selfConfidenceFlag: i.selfConfidenceFlag,
+    label: i.freeText ?? tagLabelBySlug.get(i.taxonomyTag ?? "") ?? "Unknown",
+  }));
 
   const philosophyTags: string[] = giftingStyle?.philosophyTags
     ? JSON.parse(giftingStyle.philosophyTags)
@@ -115,18 +140,23 @@ export default async function ProfilePage({
               placeholder="1994"
               min={1900}
               max={new Date().getFullYear()}
-              className="rounded-lg border border-black/15 bg-background px-3 py-2 outline-none transition focus:border-foreground/40 dark:border-white/20"
+              className="rounded-lg border border-black/15 bg-background px-3 py-2 outline-none transition focus:border-foreground/40 dark:border-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             Gender
-            <input
+            <select
               name="gender"
               defaultValue={user.gender ?? ""}
-              maxLength={40}
-              placeholder="Optional"
               className="rounded-lg border border-black/15 bg-background px-3 py-2 outline-none transition focus:border-foreground/40 dark:border-white/20"
-            />
+            >
+              <option value="">Select…</option>
+              {GENDER_OPTIONS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             Location
@@ -146,6 +176,97 @@ export default async function ProfilePage({
               Save
             </button>
           </div>
+        </form>
+      </section>
+
+      {/* Your interests (FR-4/6/7) — friends can contribute this about you,
+          but it's always yours to add to or fix, whether or not anyone's
+          invited you yet. */}
+      <section id="interests" className="mt-6 rounded-xl border border-black/10 p-5 dark:border-white/10">
+        <h2 className="font-semibold">Your interests</h2>
+        <p className="mt-1 text-sm text-foreground/60">
+          What friends see when they&apos;re figuring out a gift for you —
+          theirs to guess at first, always yours to fix. Flag how much
+          something is really you, if you like.
+        </p>
+
+        {interests.length > 0 ? (
+          <ul className="mt-4 flex flex-col gap-2">
+            {interests.map((it) => (
+              <li
+                key={it.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 px-4 py-2.5 dark:border-white/10"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {it.label}
+                </span>
+                <form
+                  action={setMyInterestConfidence.bind(null, it.id)}
+                  className="flex items-center gap-2"
+                >
+                  <label className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="confidence"
+                      value="casual"
+                      defaultChecked={it.selfConfidenceFlag === "casual"}
+                      className="peer sr-only"
+                    />
+                    <span className="inline-block rounded-full border border-black/15 px-2.5 py-1 text-xs transition peer-checked:border-foreground peer-checked:bg-foreground peer-checked:text-background dark:border-white/20">
+                      Casual
+                    </span>
+                  </label>
+                  <label className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="confidence"
+                      value="big_passion"
+                      defaultChecked={it.selfConfidenceFlag === "big_passion"}
+                      className="peer sr-only"
+                    />
+                    <span className="inline-block rounded-full border border-black/15 px-2.5 py-1 text-xs transition peer-checked:border-foreground peer-checked:bg-foreground peer-checked:text-background dark:border-white/20">
+                      Big passion
+                    </span>
+                  </label>
+                  <button
+                    type="submit"
+                    className="text-xs text-foreground/50 underline-offset-2 hover:underline"
+                  >
+                    Save
+                  </button>
+                </form>
+                <form action={removeMyInterest.bind(null, it.id)}>
+                  <button
+                    type="submit"
+                    aria-label={`Remove ${it.label}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/40 transition hover:bg-black/10 hover:text-foreground dark:hover:bg-white/15"
+                  >
+                    ✕
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-foreground/50">
+            Nothing here yet — add what you&apos;re into below.
+          </p>
+        )}
+
+        <form action={addMyInterest} className="mt-4 flex gap-2">
+          <input
+            name="label"
+            required
+            maxLength={50}
+            placeholder="Add an interest…"
+            className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+          />
+          <button
+            type="submit"
+            className="rounded-lg border border-black/15 px-4 py-2 text-sm transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          >
+            Add
+          </button>
         </form>
       </section>
 

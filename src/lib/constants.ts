@@ -64,6 +64,14 @@ export const SELF_CONFIDENCE_FLAGS = [
   { value: "casual", label: "Casual interest" },
 ] as const;
 
+/** FR-2 — personal info, optional. Fixed list rather than free text. */
+export const GENDER_OPTIONS = [
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "non_binary", label: "Non-binary" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" },
+] as const;
+
 /** Friend/target status shown in the friend list (FR-15). */
 export type FriendStatus =
   | "unclaimed" // invited, not yet joined

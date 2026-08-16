@@ -35,6 +35,13 @@ export default async function SentPage({
   const claimUrl = `${baseUrl}/invite/${invite.token}`;
   const emailed = Boolean(invite.email) && sp.email !== "failed";
 
+  // Onboarding touchpoint for a self-starting Giver: nobody has invited them,
+  // so their own interests never got captured anywhere. Skippable, and only
+  // shown while the list is actually empty.
+  const ownInterestCount = await prisma.interest.count({
+    where: { ownerId: actor.id },
+  });
+
   return (
     <div className="mx-auto w-full max-w-xl px-6 py-16">
       <h1 className="text-3xl font-semibold tracking-tight">
@@ -88,6 +95,21 @@ export default async function SentPage({
         </Link>{" "}
         until they take a look.
       </p>
+
+      {ownInterestCount === 0 && (
+        <div className="mt-6 rounded-xl border border-dashed border-black/15 p-5 dark:border-white/20">
+          <p className="text-sm text-foreground/60">
+            While you&apos;re at it — what are <em>you</em> into? So when
+            someone does this for you, they&apos;ve got a head start.
+          </p>
+          <Link
+            href="/profile#interests"
+            className="mt-2 inline-block text-sm font-medium underline underline-offset-2"
+          >
+            Add your own interests
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

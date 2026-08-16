@@ -9,6 +9,8 @@ import {
   GIFTING_PHILOSOPHIES,
   PLANNING_STYLES,
   RISK_TOLERANCES,
+  SELF_CONFIDENCE_FLAGS,
+  GENDER_OPTIONS,
 } from "@/lib/constants";
 
 // Server actions behind /profile — the signed-in user's own personal info
@@ -31,7 +33,8 @@ export async function savePersonalInfo(formData: FormData): Promise<void> {
 
   const name = String(formData.get("name") ?? "").trim().slice(0, 60) || null;
   const rawBirthYear = String(formData.get("birthYear") ?? "").trim();
-  const gender = String(formData.get("gender") ?? "").trim().slice(0, 40) || null;
+  const rawGender = String(formData.get("gender") ?? "");
+  const gender = GENDER_OPTIONS.some((g) => g.value === rawGender) ? rawGender : null;
   const location = String(formData.get("location") ?? "").trim().slice(0, 60) || null;
 
   let birthYear: number | null = null;
@@ -182,4 +185,72 @@ export async function deleteWishlistItem(itemId: string): Promise<void> {
 
   await prisma.wishlistItem.delete({ where: { id: itemId } });
   redirect("/profile?saved=wishlist#wishlist");
+}
+
+// ---------------------------------------------------------------------------
+// Your own interests (FR-4/6/7) — the person's own account of what they're
+// into. Friends can contribute this about you (Giver pre-invite, or the
+// claim-flow confirm step), but there was no way to add or correct it
+// yourself outside of being invited — this is that place, available any
+// time, for every account regardless of how they signed up.
+// ---------------------------------------------------------------------------
+
+export async function addMyInterest(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const label = String(formData.get("label") ?? "").trim().slice(0, 50);
+  if (!label) redirect("/profile?error=interest#interests");
+
+  const tag = await prisma.interestTag.findFirst({
+    where: { label: { equals: label, mode: "insensitive" } },
+  });
+
+  const existing = await prisma.interest.findMany({ where: { ownerId: userId } });
+  const dupe = existing.some(
+    (e) =>
+      (tag && e.taxonomyTag === tag.slug) ||
+      e.freeText?.toLowerCase() === label.toLowerCase(),
+  );
+  if (dupe) redirect("/profile?saved=interests#interests");
+
+  await prisma.interest.create({
+    data: {
+      ownerId: userId,
+      contributedById: userId,
+      taxonomyTag: tag?.slug ?? null,
+      freeText: tag ? null : label,
+    },
+  });
+
+  redirect("/profile?saved=interests#interests");
+}
+
+export async function removeMyInterest(interestId: string): Promise<void> {
+  const userId = await requireUserId();
+  const interest = await prisma.interest.findUnique({ where: { id: interestId } });
+  if (!interest || interest.ownerId !== userId) redirect("/profile");
+
+  await prisma.interest.delete({ where: { id: interestId } });
+  redirect("/profile?saved=interests#interests");
+}
+
+/** FR-7 — a personal "how much is this really you" flag, distinct from
+ *  anything a friend ranked. Applies to any interest on the list, no matter
+ *  who originally added it. */
+export async function setMyInterestConfidence(
+  interestId: string,
+  formData: FormData,
+): Promise<void> {
+  const userId = await requireUserId();
+  const interest = await prisma.interest.findUnique({ where: { id: interestId } });
+  if (!interest || interest.ownerId !== userId) redirect("/profile");
+
+  const raw = String(formData.get("confidence") ?? "");
+  const flag = SELF_CONFIDENCE_FLAGS.some((f) => f.value === raw) ? raw : null;
+
+  await prisma.interest.update({
+    where: { id: interestId },
+    data: { selfConfidenceFlag: flag },
+  });
+
+  redirect("/profile?saved=interests#interests");
 }
