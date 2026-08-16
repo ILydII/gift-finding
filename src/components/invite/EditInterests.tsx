@@ -56,14 +56,14 @@ export function EditInterests({
         {added.map((label) => (
           <span
             key={label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-foreground bg-foreground py-1.5 pl-3.5 pr-1.5 text-sm text-background"
+            className="inline-flex items-center gap-1.5 rounded-full border border-violet bg-violet py-1.5 pl-3.5 pr-1.5 text-sm text-white"
           >
             {label}
             <button
               type="button"
               onClick={() => setAdded(added.filter((a) => a !== label))}
               aria-label={`Remove ${label}`}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-background/70 transition hover:bg-background/20 hover:text-background"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/70 transition hover:bg-background/20 hover:text-white"
             >
               ✕
             </button>
@@ -89,7 +89,7 @@ export function EditInterests({
           maxLength={50}
           placeholder="Add what they missed…"
           aria-label="Add an interest"
-          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
         />
         <button
           type="button"
@@ -102,7 +102,7 @@ export function EditInterests({
 
       <button
         type="submit"
-        className="rounded-lg bg-foreground px-5 py-3 font-medium text-background transition hover:opacity-90"
+        className="rounded-lg bg-violet px-5 py-3 font-medium text-white transition hover:opacity-90"
       >
         {submitLabel}
       </button>

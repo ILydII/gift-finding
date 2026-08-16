@@ -32,7 +32,7 @@ export default async function DeclinePage({
       <form action={declineInvite.bind(null, token)} className="mt-8">
         <button
           type="submit"
-          className="w-full rounded-lg border border-red-600/40 px-5 py-3 font-medium text-red-700 transition hover:bg-red-600/5 dark:text-red-400"
+          className="w-full rounded-lg border border-coral/40 px-5 py-3 font-medium text-coral transition hover:bg-coral/5 dark:text-coral"
         >
           Yes — remove me
         </button>

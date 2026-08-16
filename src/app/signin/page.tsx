@@ -42,7 +42,7 @@ export default async function SignInPage({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-700 dark:text-red-400"
+          className="mt-4 rounded-lg border border-coral/30 bg-coral/5 px-4 py-3 text-sm text-coral dark:text-coral"
         >
           {ERROR_COPY[error] ?? "Something went wrong signing you in. Try again."}
         </p>

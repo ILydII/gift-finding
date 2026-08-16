@@ -29,7 +29,7 @@ export function CopyLinkField({ url }: { url: string }) {
       <button
         type="button"
         onClick={copy}
-        className="whitespace-nowrap rounded-lg bg-foreground px-4 py-2.5 font-medium text-background transition hover:opacity-90"
+        className="whitespace-nowrap rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
       >
         {copied ? "Copied ✓" : "Copy link"}
       </button>

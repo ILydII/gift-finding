@@ -23,7 +23,7 @@ export function SectionStub({ title, flow, brdRefs, description, todos, children
     <section className="mx-auto w-full max-w-3xl px-6 py-10">
       <div className="rounded-xl border border-dashed border-black/15 bg-black/[0.02] p-6 dark:border-white/20 dark:bg-white/[0.03]">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+          <span className="rounded-full bg-sunflower/15 px-2.5 py-0.5 text-xs font-medium text-sunflower dark:text-sunflower">
             scaffold — not built yet
           </span>
           {flow && (
@@ -52,7 +52,7 @@ export function SectionStub({ title, flow, brdRefs, description, todos, children
             <ul className="mt-2 space-y-1.5">
               {todos.map((t) => (
                 <li key={t} className="flex items-start gap-2 text-sm text-foreground/80">
-                  <span className="mt-1 inline-block h-3.5 w-3.5 shrink-0 rounded border border-foreground/30" />
+                  <span className="mt-1 inline-block h-3.5 w-3.5 shrink-0 rounded border border-violet/30" />
                   <span>{t}</span>
                 </li>
               ))}

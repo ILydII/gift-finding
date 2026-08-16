@@ -35,11 +35,11 @@ export default async function WelcomePage({
           maxLength={40}
           placeholder="First name or nickname"
           aria-label="Their first name"
-          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-4 py-3 text-lg outline-none transition focus:border-foreground/40 dark:border-white/20"
+          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-4 py-3 text-lg outline-none transition focus:border-violet/40 dark:border-white/20"
         />
         <button
           type="submit"
-          className="rounded-lg bg-foreground px-6 py-3 font-medium text-background transition hover:opacity-90"
+          className="rounded-lg bg-violet px-6 py-3 font-medium text-white transition hover:opacity-90"
         >
           Continue
         </button>

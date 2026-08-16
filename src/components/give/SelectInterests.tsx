@@ -55,7 +55,7 @@ export function SelectInterests({
               aria-pressed={relationship === r.value}
               className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
                 relationship === r.value
-                  ? "border-foreground bg-foreground text-background"
+                  ? "border-violet bg-violet text-white"
                   : "border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
               }`}
             >
@@ -94,7 +94,7 @@ export function SelectInterests({
                         aria-pressed={picked}
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition ${
                           picked
-                            ? "border-foreground bg-foreground text-background"
+                            ? "border-violet bg-violet text-white"
                             : "border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
                         }`}
                       >
@@ -136,7 +136,7 @@ export function SelectInterests({
             <button
               type="submit"
               disabled={count === 0}
-              className="rounded-lg bg-foreground px-5 py-2.5 font-medium text-background transition hover:opacity-90 disabled:opacity-40"
+              className="rounded-lg bg-violet px-5 py-2.5 font-medium text-white transition hover:opacity-90 disabled:opacity-40"
             >
               Next{count > 0 ? ` (${count} picked)` : ""}
             </button>

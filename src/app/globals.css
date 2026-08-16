@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
+/* Commit to the dark look: make the `dark:` variant always-on (not tied to the
+   OS setting) so the app renders in one intended dark, colorful theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Neutral base (Folderly-inspired: quiet dark shell) */
+  --background: #1a1d23; /* Charcoal — page */
+  --surface: #262a33; /* Surface — cards */
+  --surface-2: #2f343f; /* raised / hover surface */
+  --foreground: #f0f1f3; /* Ivory — primary text */
+  --muted: #9096a3; /* Muted — secondary text */
+  --border: #363c47; /* hairline borders on the dark shell */
+
+  /* Accents — solid, full-saturation, used only on small deliberate elements */
+  --sunflower: #f4b740;
+  --coral: #f2765f;
+  --sky: #4fa8e0;
+  --emerald: #4cc38a;
+  --violet: #9b7bf0;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-sunflower: var(--sunflower);
+  --color-coral: var(--coral);
+  --color-sky: var(--sky);
+  --color-emerald: var(--emerald);
+  --color-violet: var(--violet);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  color-scheme: dark;
+}
+
+/* The one violet accent per the palette rule — the primary call to action. */
+.btn-primary {
+  background-color: var(--violet);
+  color: #ffffff;
+  transition: opacity 0.15s ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* A neutral secondary action on the dark shell. */
+.btn-secondary {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+.btn-secondary:hover {
+  background-color: var(--surface-2);
 }

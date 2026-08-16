@@ -65,7 +65,7 @@ export default async function SendPage({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+          className="mt-4 rounded-lg border border-sunflower/30 bg-sunflower/5 px-4 py-3 text-sm"
         >
           {ERROR_COPY[error] ?? "Something went wrong — try again."}
         </p>
@@ -75,7 +75,7 @@ export default async function SendPage({
         action={sendInvite.bind(null, edgeId)}
         className="mt-6 flex flex-col gap-6"
       >
-        <div className="rounded-xl border border-black/10 p-5 shadow-sm dark:border-white/10">
+        <div className="rounded-xl border border-black/10 bg-surface p-5 shadow-sm dark:border-white/10">
           <p className="text-xs font-medium uppercase tracking-wide text-foreground/40">
             {name}&apos;s invite
           </p>
@@ -89,13 +89,13 @@ export default async function SendPage({
             name="personalLine"
             maxLength={140}
             placeholder={defaultLine}
-            className="mt-2 w-full rounded-md border border-dashed border-black/15 bg-transparent px-2 py-1.5 text-sm text-foreground/80 outline-none transition focus:border-foreground/40 dark:border-white/20"
+            className="mt-2 w-full rounded-md border border-dashed border-black/15 bg-transparent px-2 py-1.5 text-sm text-foreground/80 outline-none transition focus:border-violet/40 dark:border-white/20"
             aria-label="Add one personal line to the invite (optional)"
           />
           <p className="mt-1 text-xs text-foreground/40">
             That line is yours to edit — leave it as is, or make it personal.
           </p>
-          <span className="mt-3 inline-block rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background opacity-80">
+          <span className="mt-3 inline-block rounded-lg bg-violet px-4 py-2 text-sm font-medium text-white opacity-80">
             See what {senderLabel} said
           </span>
         </div>
@@ -111,7 +111,7 @@ export default async function SendPage({
               required
               maxLength={60}
               placeholder="So the invite comes from you, not an email address"
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
             />
           </div>
         )}
@@ -126,7 +126,7 @@ export default async function SendPage({
             type="email"
             defaultValue={prefillEmail}
             placeholder={`${name.toLowerCase()}@example.com`}
-            className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
+            className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
           />
           <p className="mt-1 text-xs text-foreground/50">
             Optional — or skip it and just send them a link yourself.
@@ -138,7 +138,7 @@ export default async function SendPage({
             type="submit"
             name="mode"
             value="email"
-            className="flex-1 rounded-lg bg-foreground px-5 py-3 font-medium text-background transition hover:opacity-90"
+            className="flex-1 rounded-lg bg-violet px-5 py-3 font-medium text-white transition hover:opacity-90"
           >
             Send it to {name}
           </button>

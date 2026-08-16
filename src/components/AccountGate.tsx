@@ -44,7 +44,7 @@ export function AccountGate({
               name="name"
               placeholder="First name"
               maxLength={60}
-              className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+              className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
             />
             <input
               name="birthYear"
@@ -53,7 +53,7 @@ export function AccountGate({
               placeholder="Birth year"
               min={1900}
               max={new Date().getFullYear()}
-              className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -63,7 +63,7 @@ export function AccountGate({
             <button
               type="submit"
               formAction={signInWithGoogle}
-              className="w-full rounded-lg bg-foreground px-4 py-2.5 font-medium text-background transition hover:opacity-90"
+              className="w-full rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
             >
               Continue with Google
             </button>
@@ -82,14 +82,14 @@ export function AccountGate({
               type="email"
               required
               placeholder="you@example.com"
-              className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
+              className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
             />
             <button
               type="submit"
               className={
                 googleEnabled
                   ? "rounded-lg border border-black/15 px-4 py-2.5 font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
-                  : "rounded-lg bg-foreground px-4 py-2.5 font-medium text-background transition hover:opacity-90"
+                  : "rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
               }
             >
               Email me a link

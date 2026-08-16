@@ -16,15 +16,15 @@ export const dynamic = "force-dynamic";
 const SLOT_BADGE: Record<SlotType, { label: string; className: string }> = {
   certainty: {
     label: "Sure thing",
-    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    className: "bg-emerald/15 text-emerald",
   },
   personally_anchored: {
     label: "From you",
-    className: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    className: "bg-violet/15 text-violet",
   },
   diversified: {
     label: "Worth a look",
-    className: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    className: "bg-sky/15 text-sky",
   },
 };
 
@@ -131,7 +131,7 @@ export default async function RecommendPage({
             return (
               <li
                 key={i}
-                className="rounded-xl border border-black/10 p-5 shadow-sm dark:border-white/10"
+                className="rounded-xl border border-black/10 bg-surface p-5 shadow-sm dark:border-white/10"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -156,7 +156,7 @@ export default async function RecommendPage({
                     .map((o) => (
                       <span
                         key={o}
-                        className="rounded-md bg-foreground/5 px-1.5 py-0.5 text-[11px] text-foreground/50"
+                        className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted"
                       >
                         {ORIGIN_LABEL[o]}
                       </span>
@@ -174,7 +174,7 @@ export default async function RecommendPage({
                     value="like"
                     className={`rounded-lg border px-3 py-1.5 text-sm transition ${
                       s.feedback === "like"
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        ? "border-emerald/40 bg-emerald/15 text-emerald"
                         : "border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
                     }`}
                   >
@@ -186,7 +186,7 @@ export default async function RecommendPage({
                     value="not_for_them"
                     className={`rounded-lg border px-3 py-1.5 text-sm transition ${
                       s.feedback === "not_for_them"
-                        ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        ? "border-coral/40 bg-coral/15 text-coral"
                         : "border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
                     }`}
                   >
@@ -225,7 +225,7 @@ export default async function RecommendPage({
                 rows={2}
                 maxLength={500}
                 placeholder="Optional — a line for yourself before you decide. Only you will ever see this."
-                className="w-full rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+                className="w-full rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
               />
               <button
                 type="submit"
@@ -274,7 +274,7 @@ export default async function RecommendPage({
             id="occasion"
             name="occasion"
             defaultValue="birthday"
-            className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
+            className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
           >
             {OCCASIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -301,7 +301,7 @@ export default async function RecommendPage({
               min={1}
               max={100000}
               placeholder={savedBudget ? `Up to $${savedBudget} (your usual)` : "Up to…"}
-              className="w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-foreground/40 dark:border-white/20"
+              className="w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
             />
           </div>
           <p className="mt-1 text-xs text-foreground/50">
@@ -318,7 +318,7 @@ export default async function RecommendPage({
             {GIFTING_PHILOSOPHIES.map((p) => (
               <label
                 key={p.value}
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-foreground/50 has-[:checked]:bg-foreground/5 dark:border-white/20"
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-violet/50 has-[:checked]:bg-violet/5 dark:border-white/20"
               >
                 <input
                   type="checkbox"
@@ -339,7 +339,7 @@ export default async function RecommendPage({
             {RISK_TOLERANCES.map((r) => (
               <label
                 key={r.value}
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-foreground/50 has-[:checked]:bg-foreground/5 dark:border-white/20"
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-black/15 px-3 py-1.5 text-sm transition has-[:checked]:border-violet/50 has-[:checked]:bg-violet/5 dark:border-white/20"
               >
                 <input
                   type="radio"
@@ -356,7 +356,7 @@ export default async function RecommendPage({
 
         <button
           type="submit"
-          className="rounded-lg bg-foreground px-5 py-3 font-medium text-background transition hover:opacity-90"
+          className="rounded-lg bg-violet px-5 py-3 font-medium text-white transition hover:opacity-90"
         >
           Get gift ideas for {name}
         </button>

@@ -39,7 +39,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       {error === "too_many_drafts" && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+          className="mt-4 rounded-lg border border-sunflower/30 bg-sunflower/5 px-4 py-3 text-sm"
         >
           That&apos;s a lot of open gift searches — finish or send one before
           starting another.
@@ -56,11 +56,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           maxLength={40}
           placeholder="Emma"
           aria-label="Their first name"
-          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-4 py-3 text-lg outline-none transition focus:border-foreground/40 dark:border-white/20"
+          className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-4 py-3 text-lg outline-none transition focus:border-violet/40 dark:border-white/20"
         />
         <button
           type="submit"
-          className="rounded-lg bg-foreground px-6 py-3 font-medium text-background transition hover:opacity-90"
+          className="rounded-lg bg-violet px-6 py-3 font-medium text-white transition hover:opacity-90"
         >
           Let&apos;s figure it out
         </button>

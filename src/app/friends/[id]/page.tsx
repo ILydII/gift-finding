@@ -26,7 +26,7 @@ export default async function FriendProfilePage({
       ]}
     >
       {!friend && (
-        <p className="text-sm text-red-600 dark:text-red-400">
+        <p className="text-sm text-coral dark:text-coral">
           No user found for id <code className="font-mono">{id}</code>.
         </p>
       )}

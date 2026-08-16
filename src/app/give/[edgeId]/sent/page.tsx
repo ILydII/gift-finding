@@ -51,7 +51,7 @@ export default async function SentPage({
       {sp.email === "failed" && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+          className="mt-4 rounded-lg border border-sunflower/30 bg-sunflower/5 px-4 py-3 text-sm"
         >
           We couldn&apos;t email {name}, but your link works — copy it below and
           send it yourself.
@@ -67,7 +67,7 @@ export default async function SentPage({
         <CopyLinkField url={claimUrl} />
       </div>
 
-      <div className="mt-10 rounded-xl border border-black/10 p-5 dark:border-white/10">
+      <div className="mt-10 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
         <p className="text-sm text-foreground/60">
           While you wait — here&apos;s what we&apos;d get {name} based on what
           you told us.
@@ -75,7 +75,7 @@ export default async function SentPage({
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Link
             href={`/recommend/${edge.userBId}`}
-            className="flex-1 rounded-lg bg-foreground px-5 py-3 text-center font-medium text-background transition hover:opacity-90"
+            className="flex-1 rounded-lg bg-violet px-5 py-3 text-center font-medium text-white transition hover:opacity-90"
           >
             See gift ideas for {name}
           </Link>

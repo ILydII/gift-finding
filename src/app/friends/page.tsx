@@ -55,7 +55,7 @@ export default async function FriendsPage() {
         </div>
         <Link
           href="/"
-          className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition hover:opacity-90"
+          className="rounded-lg bg-violet px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
         >
           + Add a friend
         </Link>
@@ -91,7 +91,7 @@ export default async function FriendsPage() {
                   {isDraft ? (
                     <Link
                       href={`/give/${edge.id}`}
-                      className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition hover:opacity-90"
+                      className="rounded-md bg-violet px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90"
                     >
                       Finish &amp; send
                     </Link>

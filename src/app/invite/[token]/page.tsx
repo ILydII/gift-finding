@@ -100,7 +100,7 @@ export default async function InvitePage({
             you first — they can&apos;t see how you answer, just a better list.
           </p>
 
-          <div className="mt-6 rounded-xl border border-black/10 p-5 dark:border-white/10">
+          <div className="mt-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
             <p className="text-sm text-foreground/60">
               {giver} thinks you&apos;re into:
             </p>
@@ -131,7 +131,7 @@ export default async function InvitePage({
       <div className="mt-8 flex flex-col gap-3">
         <Link
           href={`/invite/${token}/confirm`}
-          className="rounded-lg bg-foreground px-5 py-3 text-center font-medium text-background transition hover:opacity-90"
+          className="rounded-lg bg-violet px-5 py-3 text-center font-medium text-white transition hover:opacity-90"
         >
           {hasData ? `${giver} got it right — mostly` : "Tell them what you're into"}
         </Link>
@@ -182,7 +182,7 @@ function CenteredNote({
       {cta && (
         <Link
           href={cta.href}
-          className="mt-6 inline-block rounded-lg bg-foreground px-5 py-2.5 font-medium text-background transition hover:opacity-90"
+          className="mt-6 inline-block rounded-lg bg-violet px-5 py-2.5 font-medium text-white transition hover:opacity-90"
         >
           {cta.label}
         </Link>

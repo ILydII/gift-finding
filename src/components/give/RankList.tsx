@@ -236,7 +236,7 @@ export function RankList({
             }}
             maxLength={50}
             placeholder={`"late-night baking" · "anything Formula 1" · "that one bakery on 5th"`}
-            className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+            className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
           />
           <button
             type="button"
@@ -263,7 +263,7 @@ export function RankList({
           rows={2}
           maxLength={1000}
           placeholder={`Notes to yourself about ${targetName}…`}
-          className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-foreground/40 dark:border-white/20"
+          className="mt-1.5 w-full rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
         />
         <p className="mt-1 flex items-center gap-1 text-xs text-foreground/50">
           <span aria-hidden>🔒</span> Only you can see this. {targetName} never
@@ -284,7 +284,7 @@ export function RankList({
           <button
             type="submit"
             disabled={rows.length === 0}
-            className="rounded-lg bg-foreground px-5 py-2.5 font-medium text-background transition hover:opacity-90 disabled:opacity-40"
+            className="rounded-lg bg-violet px-5 py-2.5 font-medium text-white transition hover:opacity-90 disabled:opacity-40"
           >
             Next
           </button>
