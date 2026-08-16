@@ -4,30 +4,30 @@ import { prisma } from "@/lib/prisma";
 import { loadInvite, inviteState } from "@/lib/invite-data";
 import { firstName } from "@/lib/give-data";
 import { EditInterests } from "@/components/invite/EditInterests";
-import { AccountGate } from "@/components/AccountGate";
-import { saveReceiverEdits, claimInvite } from "@/app/invite/[token]/actions";
+import { claimInvite } from "@/app/invite/[token]/actions";
 
 export const dynamic = "force-dynamic";
 
-// R2 (PRD §3B) — confirm, edit & save. Edits work before any account exists
-// (token authority); the account block sits below, and "Save my profile" is
-// what creates the link to the unclaimed record (FR-14).
+// R2 — confirm, edit & save. Sign-in already happened at R1, so this screen
+// is always reached authenticated; "Save my profile" both applies edits and
+// claims the record (FR-14).
 export default async function ConfirmPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
-  const sp = await searchParams;
 
   const invite = await loadInvite(token);
   if (!invite || inviteState(invite) !== "ok") redirect(`/invite/${token}`);
   const giver = firstName(invite.inviter);
 
   const session = await auth();
-  const signedIn = Boolean(session?.user?.id);
+  if (!session?.user?.id) {
+    redirect(
+      `/signin?callbackUrl=${encodeURIComponent(`/invite/${token}/confirm`)}`,
+    );
+  }
 
   const interests = await prisma.interest.findMany({
     where: { ownerId: invite.targetId },
@@ -55,41 +55,13 @@ export default async function ConfirmPage({
         told what you changed. This is yours now.
       </p>
 
-      {sp.saved === "1" && (
-        <p className="mt-4 rounded-lg border border-green-600/30 bg-green-600/5 px-4 py-3 text-sm">
-          Saved. Sign in below to make it yours for good.
-        </p>
-      )}
-      {sp.error === "auth" && (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
-        >
-          Sign in below first, then save your profile.
-        </p>
-      )}
-
       <div className="mt-8">
         <EditInterests
           items={items}
-          action={
-            signedIn
-              ? claimInvite.bind(null, token)
-              : saveReceiverEdits.bind(null, token)
-          }
-          submitLabel={signedIn ? "Save my profile" : "Save changes"}
+          action={claimInvite.bind(null, token)}
+          submitLabel="Save my profile"
         />
       </div>
-
-      {!signedIn && (
-        <div className="mt-8">
-          <AccountGate
-            redirectTo={`/invite/${token}/confirm`}
-            headline="Save this so your friends see it."
-            subline={`One account, and ${giver}'s gift ideas get sharper from here.`}
-          />
-        </div>
-      )}
     </div>
   );
 }

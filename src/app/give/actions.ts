@@ -5,31 +5,33 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getActor, getViewer, absorbGuestDraft } from "@/lib/guest";
 import { sendEmail, inviteEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/url";
 import { DISPLAY_SLUGS } from "@/lib/taxonomy";
 import { RELATIONSHIP_TYPES } from "@/lib/constants";
 
-// Server actions for the Giver flow G1–G5 (PRD §3A). All of G1–G3 works for a
-// guest; the only gate is sendInvite (PRD §5).
+// Server actions for the Giver flow G1–G5. Sign-in happens up front (before
+// naming anyone — see PRD addendum, account timing reversed), so every step
+// here runs against a real, signed-in account.
 
 const INVITE_TTL_DAYS = 30;
-const MAX_GUEST_DRAFTS = 20; // cheap FR-27 stand-in until IP limiting exists
+const MAX_OPEN_DRAFTS = 30; // cheap abuse guard, not guest-specific anymore
 const NEW_ACCOUNT_INVITES_PER_DAY = 10; // FR-27, accounts < 7 days old
 const RECIPIENT_COOLDOWN_HOURS = 72; // FR-27, per recipient address
 
 /** Ownership check shared by every step: the edge must belong to the current
- *  viewer (signed-in user or this browser's guest). */
+ *  signed-in user. */
 async function loadOwnedEdge(edgeId: string) {
-  const { user } = await getViewer();
-  if (!user) return null;
+  const session = await auth();
+  if (!session?.user?.id) return null;
   const edge = await prisma.friendEdge.findUnique({
     where: { id: edgeId },
     include: { userB: true },
   });
-  if (!edge || edge.userAId !== user.id) return null;
-  return { edge, actor: user };
+  if (!edge || edge.userAId !== session.user.id) return null;
+  const actor = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!actor) return null;
+  return { edge, actor };
 }
 
 // ---------------------------------------------------------------------------
@@ -42,31 +44,33 @@ export async function startGiftSearch(formData: FormData): Promise<void> {
     .slice(0, 40);
   if (!name) redirect("/");
 
-  const { user: actor, isGuest } = await getActor();
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(`/signin?callbackUrl=${encodeURIComponent("/")}`);
+  }
+  const actorId = session.user.id;
 
   // FR-26 — same-Giver duplicate: route back into the existing record.
   const existing = await prisma.friendEdge.findFirst({
     where: {
-      userAId: actor.id,
+      userAId: actorId,
       userB: { name: { equals: name, mode: "insensitive" } },
     },
   });
   if (existing) redirect(`/give/${existing.id}?back=1`);
 
-  if (isGuest) {
-    const draftCount = await prisma.friendEdge.count({
-      where: { userAId: actor.id },
-    });
-    if (draftCount >= MAX_GUEST_DRAFTS) {
-      redirect(`/?error=too_many_drafts`);
-    }
+  const draftCount = await prisma.friendEdge.count({
+    where: { userAId: actorId, status: "draft" },
+  });
+  if (draftCount >= MAX_OPEN_DRAFTS) {
+    redirect(`/?error=too_many_drafts`);
   }
 
   const target = await prisma.user.create({
     data: { name, claimStatus: "unclaimed" },
   });
   const edge = await prisma.friendEdge.create({
-    data: { userAId: actor.id, userBId: target.id, status: "draft" },
+    data: { userAId: actorId, userBId: target.id, status: "draft" },
   });
 
   redirect(`/give/${edge.id}`);
@@ -292,7 +296,7 @@ export async function saveRanking(
 }
 
 // ---------------------------------------------------------------------------
-// G4 — send (the only gate; requires a signed-in sender)
+// G4 — send
 // ---------------------------------------------------------------------------
 
 export async function sendInvite(
@@ -301,13 +305,9 @@ export async function sendInvite(
 ): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect(`/give/${edgeId}/send?error=auth`);
+    redirect(`/signin?callbackUrl=${encodeURIComponent(`/give/${edgeId}/send`)}`);
   }
   const userId = session.user.id;
-
-  // The guest draft may not have merged yet (e.g. auth event failed) — this is
-  // the moment it must be real, so retry here before the ownership check.
-  await absorbGuestDraft(userId);
 
   const edge = await prisma.friendEdge.findUnique({
     where: { id: edgeId },

@@ -39,14 +39,9 @@ model User {
   gender       String? // free text / optional
   location     String? // city-level only (BRD FR-2, non-functional privacy)
 
-  // "unclaimed" = placeholder created by a Giver (FR-12); "claimed" = real account.
+  // "unclaimed" = placeholder created by a Giver (FR-12); "claimed" = real
+  // account; "declined" = a Receiver removed themselves (PRD FR-21).
   claimStatus String @default("claimed")
-
-  // Guest Giver support (PRD §5): a brand-new visitor gets a real User row with
-  // isGuest=true, keyed by an opaque token held in an httpOnly cookie. Account
-  // creation merges/upgrades this row — never a separate draft store.
-  isGuest    Boolean @default(false)
-  guestToken String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

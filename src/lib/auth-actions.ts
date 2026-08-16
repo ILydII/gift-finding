@@ -6,10 +6,12 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { stashPendingProfile } from "@/lib/pending-profile";
 
-// Server actions behind every "account" moment (G4, R2, /signin). The PRD's
-// account ask is always inline — these actions carry a redirectTo back to the
-// screen the user was on so auth never strands them.
+// Server actions behind the combined sign-in screen — the single front door
+// for both entry points (self-starting Giver, invited Receiver). Each stashes
+// any optional name/birth-year before handing off to the provider, and
+// carries a redirectTo so auth lands back where the user was headed.
 
 function safeRedirectTo(raw: unknown): string {
   const value = typeof raw === "string" ? raw : "/";
@@ -30,6 +32,8 @@ export async function signInWithMagicLink(formData: FormData): Promise<void> {
     );
   }
 
+  await stashPendingProfile(formData);
+
   try {
     await signIn("resend", { email: email.data, redirectTo });
   } catch (err) {
@@ -44,11 +48,13 @@ export async function signInWithMagicLink(formData: FormData): Promise<void> {
 
 export async function signInWithGoogle(formData: FormData): Promise<void> {
   const redirectTo = safeRedirectTo(formData.get("redirectTo"));
+  await stashPendingProfile(formData);
   await signIn("google", { redirectTo });
 }
 
 export async function signInWithPassword(formData: FormData): Promise<void> {
   const redirectTo = safeRedirectTo(formData.get("redirectTo"));
+  await stashPendingProfile(formData);
   try {
     await signIn("credentials", {
       email: String(formData.get("email") ?? "").trim().toLowerCase(),
@@ -66,7 +72,7 @@ export async function signInWithPassword(formData: FormData): Promise<void> {
 }
 
 /** Dev-only convenience: create an email/password account then sign in.
- *  Production auth is Google + magic link only (PRD decision log #10). */
+ *  Production auth is Google + magic link only. */
 export async function registerWithPassword(formData: FormData): Promise<void> {
   if (process.env.NODE_ENV === "production") redirect("/signin");
 

@@ -1,9 +1,25 @@
 # PRD — Onboarding & Friend-Adding (Final)
 
 **Product:** Gift Recommendation Web App — V1 "Core Loop"
-**Status:** Final v1.0 — adjudicated merge of two competing drafts
+**Status:** Final v1.0 — adjudicated merge of two competing drafts, superseded on account timing by the addendum below
 **Date:** 2026-08-16
 **Source BRD:** Gift App BRD v1.1 (draft v0.2, Giver-first entry)
+
+---
+
+## Addendum (2026-08-16, later same day) — Account timing reversed
+
+The product owner reviewed the built product and found the guest-mode experience confusing across both entry points (a fresh visitor with no invite, and someone opening an invite link). **This reverses §5 and the "unanimous" ruling in the decision log (#1/#2): sign-in now happens up front, before either entry point does anything, for both the self-starting Giver and the invited Receiver.**
+
+What changed, concretely:
+
+- **Guest mode is gone entirely.** No anonymous draft rows, no `isGuest`/`guestToken` on `User` (migrated out), no merge-on-signin logic. A brand-new visitor to `/` is redirected straight to `/signin`; only after authenticating do they see "Who are you trying to find a gift for?"
+- **The invited Receiver also signs in before seeing anything.** Opening an invite link now redirects to `/signin` first — the claim landing (formerly reachable with zero auth, per the original §6.1 "no login wall" rule) only renders once a session exists. That specific trust mechanic (viewing your own data with no account) is traded away in exchange for one consistent rule: sign in first, always. Token-state messages (expired/already-claimed/declined) still render without auth, since they reveal nothing personal.
+- **Sign-in and personal info are now one step.** The combined sign-in screen (Google + magic link) also collects optional name and birth year inline, applied to the account on first authentication via a short-lived cookie (`gf_pending_profile`) — since Google's redirect round-trip and a clicked email link can't carry form data through directly. Never overwrites a value the account already has (e.g. a name Google already supplied).
+- **Every mid-flow account gate is gone.** G4 (send) and R2 (confirm/claim) no longer branch on auth state — by the time either is reached, a session is guaranteed, so `AccountGate` now renders in exactly one place: `/signin`.
+- **Consequence for the decline flow:** "I'd rather not be in this" now also requires being signed in (you can't reach the invite at all without it), so the "costs nothing, no account" framing in §6.4 is no longer literally true — the exit is still one tap and dignified, just not anonymous anymore.
+
+The reasoning in §5 and the original ruling table is left below for history — it was a real, reasoned tradeoff (an unconfounded funnel signal, a lower-friction first touch), not a mistake. It's superseded by a direct product-owner call after seeing the built experience, not by new evidence that it was wrong in the abstract.
 
 ---
 

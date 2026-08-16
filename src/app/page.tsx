@@ -1,26 +1,31 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getViewer } from "@/lib/guest";
+import { auth } from "@/lib/auth";
 import { startGiftSearch } from "@/app/give/actions";
 import { firstName } from "@/lib/give-data";
 
 export const dynamic = "force-dynamic";
 
-// G1 (PRD §3A) — landing + first prompt, one screen. The first ask is a name,
-// never an account. Guests get real draft rows; the only gate is at send.
+// G1 — the first prompt after sign-in. Auth now happens up front for both
+// entry points (see docs/PRD-onboarding-and-friend-adding.md addendum): a
+// signed-out visitor lands on /signin first, and comes back here already
+// authenticated.
 export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : null;
 
-  const { user } = await getViewer();
-  const drafts = user
-    ? await prisma.friendEdge.findMany({
-        where: { userAId: user.id, status: "draft" },
-        include: { userB: true },
-        orderBy: { createdAt: "desc" },
-        take: 3,
-      })
-    : [];
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(`/signin?callbackUrl=${encodeURIComponent("/")}`);
+  }
+
+  const drafts = await prisma.friendEdge.findMany({
+    where: { userAId: session.user.id, status: "draft" },
+    include: { userB: true },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center px-6 py-20 text-center">
@@ -36,8 +41,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           role="alert"
           className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
         >
-          That&apos;s a lot of gift searches for one sitting — finish one first,
-          or sign in to keep them all.
+          That&apos;s a lot of open gift searches — finish or send one before
+          starting another.
         </p>
       )}
 

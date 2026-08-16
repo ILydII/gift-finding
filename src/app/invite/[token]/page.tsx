@@ -1,14 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { loadInvite, inviteState } from "@/lib/invite-data";
 import { firstName } from "@/lib/give-data";
 
 export const dynamic = "force-dynamic";
 
-// R1 (PRD §3B) — the claim landing, the highest-stakes screen in the product.
-// Rules enforced here: no login wall before seeing data about yourself; one
-// named human attributor; tags shown UNORDERED (ranks never reach the
-// subject); the exit is offered in the same breath as the ask.
+// R1 — the claim landing. Sign-in now happens before seeing what a friend
+// said (see docs/PRD-onboarding-and-friend-adding.md addendum — account
+// timing reversed): token-state messages (expired/claimed/declined) render
+// without auth since they reveal nothing personal, but the actual content —
+// the Giver's name and the tags — is gated behind sign-in.
 export default async function InvitePage({
   params,
 }: {
@@ -27,9 +30,9 @@ export default async function InvitePage({
   }
 
   const state = inviteState(invite);
-  const giver = firstName(invite.inviter);
 
   if (state === "expired") {
+    const giver = firstName(invite.inviter);
     return (
       <CenteredNote
         title="This link's gone stale."
@@ -55,8 +58,15 @@ export default async function InvitePage({
     );
   }
 
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(`/signin?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`);
+  }
+
+  const giver = firstName(invite.inviter);
+
   // Tags render in creation order with rank values never queried — the subject
-  // sees WHAT was said, never how it was ranked (PRD §6.3).
+  // sees WHAT was said, never how it was ranked.
   const interests = await prisma.interest.findMany({
     where: { ownerId: invite.targetId },
     orderBy: { createdAt: "asc" },

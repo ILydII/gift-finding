@@ -12,25 +12,31 @@ const ERROR_COPY: Record<string, string> = {
   email_taken: "That email already has an account — sign in instead.",
 };
 
-// Standalone sign-in, for returning users ("Already have an account?"). New
-// users never need this page — their account is created inline at the send
-// screen (G4) or the claim screen (R2), per the PRD.
+// The single front door for both entry points. Copy adapts to which one sent
+// the visitor here (detected from callbackUrl) since "sign in" means a
+// different thing depending on whether you arrived via an invite link or
+// showed up to start your own gift search.
 export default async function SignInPage({
   searchParams,
 }: PageProps<"/signin">) {
   const params = await searchParams;
   const callbackUrl =
-    typeof params.callbackUrl === "string" ? params.callbackUrl : "/friends";
+    typeof params.callbackUrl === "string" ? params.callbackUrl : "/";
   const error = typeof params.error === "string" ? params.error : null;
+  const isInviteContext = callbackUrl.startsWith("/invite/");
 
   const session = await auth();
-  if (session?.user) redirect(callbackUrl.startsWith("/") ? callbackUrl : "/friends");
+  if (session?.user) redirect(callbackUrl.startsWith("/") ? callbackUrl : "/");
 
   return (
     <div className="mx-auto w-full max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {isInviteContext ? "A friend is getting you something." : "Let's get started."}
+      </h1>
       <p className="mt-1 text-sm text-foreground/60">
-        Sign in to get back to your friends and gift ideas.
+        {isInviteContext
+          ? "Sign in to see what they've already figured out about you."
+          : "Sign in once, then tell us who you're shopping for."}
       </p>
 
       {error && (
@@ -46,7 +52,7 @@ export default async function SignInPage({
         <AccountGate
           redirectTo={callbackUrl}
           headline="Sign in"
-          subline="Use the same email or Google account as last time."
+          subline="Google, or we'll email you a one-time link — either way, no password to remember."
         />
       </div>
     </div>

@@ -6,8 +6,8 @@ import { declineInvite } from "@/app/invite/[token]/actions";
 
 export const dynamic = "force-dynamic";
 
-// PRD §6.4 — one tap, one confirm, no account, no guilt copy. A cheap,
-// dignified exit is what makes staying meaningful.
+// One tap, one confirm, no guilt copy. A cheap, dignified exit is what makes
+// staying meaningful.
 export default async function DeclinePage({
   params,
 }: {

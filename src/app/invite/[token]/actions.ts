@@ -8,17 +8,24 @@ import { sendEmail, claimNotificationEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/url";
 import { loadInvite, inviteState } from "@/lib/invite-data";
 
-// Receiver claim flow actions (PRD §3B). Before an account exists, the invite
-// token IS the authority (PRD ruling #16): anyone holding the link can view,
-// edit, and decline — the exposed surface is a first name and hobby tags.
+// Receiver claim flow actions. Sign-in now happens before the invite ever
+// shows anything (see PRD addendum — account timing reversed), so every
+// action here runs against a real, signed-in account.
 
 // ---------------------------------------------------------------------------
-// "I'd rather not be in this" (PRD §6.4, FR-21) — one tap + one confirm, no
-// account. Hard-deletes everything recorded about the person; suppresses the
-// address; the Giver only ever learns "isn't using this".
+// "I'd rather not be in this" (FR-21) — one tap + one confirm. Hard-deletes
+// everything recorded about the person; suppresses the address; the Giver
+// only ever learns "isn't using this".
 // ---------------------------------------------------------------------------
 
 export async function declineInvite(token: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(
+      `/signin?callbackUrl=${encodeURIComponent(`/invite/${token}/decline`)}`,
+    );
+  }
+
   const invite = await loadInvite(token);
   if (!invite || inviteState(invite) !== "ok") redirect(`/invite/${token}`);
 
@@ -59,7 +66,7 @@ export async function declineInvite(token: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// R2 edits — remove/add interests before any account exists (token authority).
+// R2 edits — remove/add interests, applied as part of claiming.
 // ---------------------------------------------------------------------------
 
 const editsSchema = z.object({
@@ -126,21 +133,9 @@ async function applyEdits(
   ]);
 }
 
-/** Save edits while still signed out; the account block on the same screen
- *  finishes the job. */
-export async function saveReceiverEdits(
-  token: string,
-  formData: FormData,
-): Promise<void> {
-  const invite = await loadInvite(token);
-  if (!invite || inviteState(invite) !== "ok") redirect(`/invite/${token}`);
-  await applyEdits(invite.targetId, formData);
-  redirect(`/invite/${token}/confirm?saved=1`);
-}
-
 // ---------------------------------------------------------------------------
-// Claim (FR-14, PRD §3B R2): link the signed-in account to the unclaimed
-// record, carry everything over, notify the Giver, and close the loop.
+// Claim (FR-14): link the signed-in account to the unclaimed record, carry
+// everything over, notify the Giver, and close the loop.
 // ---------------------------------------------------------------------------
 
 export async function claimInvite(
@@ -149,7 +144,9 @@ export async function claimInvite(
 ): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect(`/invite/${token}/confirm?error=auth`);
+    redirect(
+      `/signin?callbackUrl=${encodeURIComponent(`/invite/${token}/confirm`)}`,
+    );
   }
   const userId = session.user.id;
 
@@ -168,8 +165,8 @@ export async function claimInvite(
       data: { claimStatus: "claimed" },
     });
   } else {
-    // Token is the authority (PRD ruling #16): a different account claims by
-    // absorbing the unclaimed record's data.
+    // Signed in with a different account than the invite's email matched —
+    // absorb the unclaimed record's data into the account that's here.
     await prisma.$transaction(async (tx) => {
       await tx.interest.updateMany({
         where: { ownerId: targetId },

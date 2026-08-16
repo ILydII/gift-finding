@@ -7,16 +7,18 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
-import { absorbGuestDraft } from "@/lib/guest-merge";
+import { applyPendingProfile } from "@/lib/pending-profile";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
 
-// Auth methods per the PRD (§5, decision log #10): Google SSO + email magic
-// link — no user-facing passwords. The Credentials provider is kept as a
-// dev-only path for the seeded demo account (hidden in production UI).
+// Auth methods: Google SSO + email magic link — no user-facing passwords.
+// The Credentials provider is kept as a dev-only path for the seeded demo
+// account (hidden in production UI). Sign-in now happens up front for both
+// entry points (see PRD addendum — account timing reversed from the
+// original guest-mode design), so this is the single front door.
 const providers: NextAuthConfig["providers"] = [
   // Magic link (provider id: "resend"). Delivery goes through src/lib/email —
   // real sends when RESEND_API_KEY is set, console logging otherwise, so the
@@ -87,14 +89,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    // PRD FR-6: signing in from a guest session merges the draft into the
-    // account, in place. Best-effort — a failed merge must never block auth
-    // (the send action retries the merge before sending).
+    // Sign-in collects optional name/birth-year alongside auth (see
+    // pending-profile.ts) — apply it once a session exists. Best-effort:
+    // a failed apply must never block auth.
     async signIn({ user }) {
       try {
-        if (user?.id) await absorbGuestDraft(user.id);
+        if (user?.id) await applyPendingProfile(user.id);
       } catch (err) {
-        console.error("Guest draft merge on sign-in failed:", err);
+        console.error("Applying pending profile on sign-in failed:", err);
       }
     },
   },
