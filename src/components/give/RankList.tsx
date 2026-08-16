@@ -2,10 +2,11 @@
 
 import { useRef, useState } from "react";
 
-// G3 (PRD §3A/§4): the selection rendered back as a numbered list. Chevron
-// buttons only — no drag-and-drop in V1 (accessible for free, identical data).
-// Positions 1–3 sit above a "Counts most" hairline; a full order is stored
-// but only the top 3 is demanded.
+// G3 (PRD §3A/§4): the selection rendered back as a numbered list. Drag (via
+// a dedicated handle, Pointer Events so it works the same for mouse and
+// touch) plus ▲/▼ buttons — the buttons stay as the keyboard/screen-reader
+// path, drag is additive. Positions 1–3 sit above a "Counts most" hairline;
+// a full order is stored but only the top 3 is demanded.
 
 export type RankRow = {
   key: string; // stable client key
@@ -27,8 +28,10 @@ export function RankList({
 }) {
   const [rows, setRows] = useState<RankRow[]>(initialRows);
   const [custom, setCustom] = useState("");
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const liveRef = useRef<HTMLParagraphElement>(null);
   const nextKey = useRef(0);
+  const rowElsRef = useRef<Map<string, HTMLLIElement>>(new Map());
 
   function announce(text: string) {
     if (liveRef.current) liveRef.current.textContent = text;
@@ -41,6 +44,52 @@ export function RankList({
     [copy[index], copy[next]] = [copy[next], copy[index]];
     setRows(copy);
     announce(`${copy[next].label}, now position ${next + 1} of ${copy.length}`);
+  }
+
+  // Drag reorder: a handle starts the drag; as the pointer crosses another
+  // row's vertical midpoint, the dragged row moves to that position live.
+  // Pointer Events (not HTML5 dnd) so mouse and touch behave the same way.
+  function handlePointerDown(e: React.PointerEvent, key: string) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setDraggingKey(key);
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!draggingKey) return;
+    e.preventDefault();
+
+    const fromIndex = rows.findIndex((r) => r.key === draggingKey);
+    if (fromIndex === -1) return;
+
+    let toIndex = fromIndex;
+    for (let i = 0; i < rows.length; i++) {
+      const el = rowElsRef.current.get(rows[i].key);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        toIndex = i;
+        break;
+      }
+    }
+
+    if (toIndex !== fromIndex) {
+      const copy = [...rows];
+      const [moved] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, moved);
+      setRows(copy);
+    }
+  }
+
+  function handlePointerUp() {
+    if (!draggingKey) return;
+    const finalIndex = rows.findIndex((r) => r.key === draggingKey);
+    if (finalIndex !== -1) {
+      announce(
+        `${rows[finalIndex].label}, now position ${finalIndex + 1} of ${rows.length}`,
+      );
+    }
+    setDraggingKey(null);
   }
 
   function remove(index: number) {
@@ -73,7 +122,14 @@ export function RankList({
 
       <ol className="flex flex-col gap-1">
         {rows.map((row, i) => (
-          <li key={row.key} className="contents">
+          <li
+            key={row.key}
+            ref={(el) => {
+              if (el) rowElsRef.current.set(row.key, el);
+              else rowElsRef.current.delete(row.key);
+            }}
+            className="contents"
+          >
             {i === 0 && (
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-foreground/50">
                 Counts most
@@ -84,8 +140,26 @@ export function RankList({
                 Also true
               </p>
             )}
-            <div className="flex items-center gap-3 rounded-lg border border-black/10 bg-background px-3 py-2 dark:border-white/10">
-              <span className="w-6 text-center text-sm font-semibold text-foreground/40 tabular-nums">
+            <div
+              className={`flex items-center gap-2 rounded-lg border border-black/10 bg-background px-3 py-2 transition dark:border-white/10 ${
+                draggingKey === row.key
+                  ? "opacity-60 shadow-md ring-2 ring-foreground/20"
+                  : ""
+              }`}
+            >
+              <button
+                type="button"
+                aria-label={`Drag to reorder ${row.label}`}
+                onPointerDown={(e) => handlePointerDown(e, row.key)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                style={{ touchAction: "none" }}
+                className="flex h-9 w-6 shrink-0 cursor-grab items-center justify-center text-foreground/30 transition hover:text-foreground/60 active:cursor-grabbing"
+              >
+                ⠿
+              </button>
+              <span className="w-6 shrink-0 text-center text-sm font-semibold text-foreground/40 tabular-nums">
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1 truncate">
