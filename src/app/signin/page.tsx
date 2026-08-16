@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { AccountGate } from "@/components/AccountGate";
+import { GradientShimmer } from "@/components/ui/gradient-shimmer";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +33,20 @@ export default async function SignInPage({
 
   return (
     <div className="mx-auto w-full max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {isInviteContext ? "A friend is getting you something." : "Let's get started."}
-      </h1>
-      <p className="mt-1 text-sm text-foreground/60">
-        {isInviteContext
-          ? "Add your name to see what they've already figured out about you."
-          : "Just your name to start — we'll set up your profile, then your friends."}
-      </p>
+      <div className="text-center">
+        <GradientShimmer
+          as="h1"
+          gradient="sunrise"
+          className="text-6xl font-semibold tracking-tight sm:text-7xl"
+        >
+          What Gift?
+        </GradientShimmer>
+        <p className="mt-4 text-sm text-foreground/60">
+          {isInviteContext
+            ? "Add your name to see what a friend's already figured out about you."
+            : "Just your name to start — we'll set up your profile, then your friends."}
+        </p>
+      </div>
 
       {error && (
         <p

@@ -16,7 +16,7 @@ export async function Nav() {
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-3">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span aria-hidden>🎁</span>
-          <span>Gift Finder</span>
+          <span>What Gift?</span>
         </Link>
         <ul className="flex items-center gap-1 text-sm">
           {user &&

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gift Finder",
+  title: "What Gift?",
   description:
     "Find better gifts by combining what someone wants, what their friends know about them, and how you like to give.",
 };
