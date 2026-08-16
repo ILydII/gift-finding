@@ -37,10 +37,14 @@ yarn-error.log*
 # vercel
 .vercel
 
-# prisma / sqlite local database
-/prisma/*.db
-/prisma/*.db-journal
+# prisma / sqlite local database (created locally via `npm run db:migrate`)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma

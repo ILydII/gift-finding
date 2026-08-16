@@ -1,0 +1,11 @@
+# Normalize line endings so Windows/macOS/Linux collaborators don't churn diffs.
+* text=auto eol=lf
+
+# Binary / generated — never normalize.
+*.db binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+package-lock.json -diff

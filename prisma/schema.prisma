@@ -1,0 +1,328 @@
+// Gift Recommendation Web App — data model
+// Maps to BRD v0.2 Section 10 (High-Level Data Model), plus the Auth.js
+// adapter tables and an invite/taxonomy model needed to make the loop work.
+//
+// Provider is SQLite for zero-setup local dev. The schema is written to be
+// Postgres-ready: we avoid enums (unsupported on SQLite) in favour of String
+// fields with documented allowed values, and store small arrays as JSON
+// strings. Swapping `provider` to "postgresql" later needs no model rewrite.
+//
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js (NextAuth) adapter models
+// Required shape for @auth/prisma-adapter. User is extended with app fields.
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Credentials auth (email/password). Null for OAuth-only or unclaimed users.
+  passwordHash String?
+
+  // App profile fields (BRD FR-2). All optional, never a first-screen ask.
+  phone        String? // used when a target is added by phone rather than email
+  birthYear    Int? // age / life-stage context, not exact DOB
+  gender       String? // free text / optional
+  location     String? // city-level only (BRD FR-2, non-functional privacy)
+
+  // "unclaimed" = placeholder created by a Giver (FR-12); "claimed" = real account.
+  claimStatus String @default("claimed")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Auth.js relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations (each direction of every pairwise relation)
+  interestsOwned        Interest[]              @relation("InterestOwner")
+  interestsContributed  Interest[]              @relation("InterestContributor")
+  wishlistItems         WishlistItem[]          @relation("WishlistOwner")
+  edgesInitiated        FriendEdge[]            @relation("EdgeFrom")
+  edgesReceived         FriendEdge[]            @relation("EdgeTo")
+  rankingsGiven         InterestRanking[]       @relation("RankingRanker")
+  rankingsReceived      InterestRanking[]       @relation("RankingSubject")
+  relContextGiven       RelationshipContext[]   @relation("RelCtxRanker")
+  relContextReceived    RelationshipContext[]   @relation("RelCtxSubject")
+  notesAuthored         FriendNote[]            @relation("NoteOwner")
+  notesAbout            FriendNote[]            @relation("NoteSubject")
+  milestonesAuthored    MilestoneEntry[]        @relation("MilestoneOwner")
+  milestonesAbout       MilestoneEntry[]        @relation("MilestoneSubject")
+  giftingStyle          GiftingStyleProfile?
+  recRequestsAsGiver    RecommendationRequest[] @relation("RecReqGiver")
+  recRequestsAsReceiver RecommendationRequest[] @relation("RecReqReceiver")
+  invitesSent           Invite[]                @relation("InviteInviter")
+  invitesReceived       Invite[]                @relation("InviteTarget")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Interest taxonomy (FR-5) — curated starter tags, categories + subcategories.
+// Referenced loosely by Interest.taxonomyTag (slug) so free-text still works.
+// ---------------------------------------------------------------------------
+
+model InterestTag {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  label     String
+  category  String
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Interests on a Receiver's profile (FR-4/6/7/8). Can be added by the Receiver
+// themselves or by a Giver (pre- or post-invite), tagged by contributor.
+// ---------------------------------------------------------------------------
+
+model Interest {
+  id              String  @id @default(cuid())
+  ownerId         String // the Receiver this interest is about
+  contributedById String? // who added it: the Receiver, or a Giver
+  taxonomyTag     String? // InterestTag.slug, if chosen from the taxonomy
+  freeText        String? // custom free-text interest (FR-6)
+
+  // Receiver-only self assessment (FR-7): "big_passion" | "casual". Null when
+  // the entry was contributed by a Giver rather than the Receiver.
+  selfConfidenceFlag String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // versioning/staleness signal (FR-8)
+
+  owner         User              @relation("InterestOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  contributedBy User?             @relation("InterestContributor", fields: [contributedById], references: [id], onDelete: SetNull)
+  rankings      InterestRanking[]
+
+  @@index([ownerId])
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist (FR-9/10/11) — specific, concrete items the Receiver wants.
+// ---------------------------------------------------------------------------
+
+model WishlistItem {
+  id          String   @id @default(cuid())
+  ownerId     String
+  title       String
+  description String?
+  link        String?
+  price       Float?
+  visibility  String   @default("public") // "public" | "private"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User @relation("WishlistOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+// ---------------------------------------------------------------------------
+// Friend graph (FR-12..16). Directed edge: userA (Giver) added userB (target).
+// ---------------------------------------------------------------------------
+
+model FriendEdge {
+  id        String   @id @default(cuid())
+  userAId   String // Giver / initiator
+  userBId   String // Receiver / target
+  status    String   @default("invited") // "invited" | "accepted"
+  createdAt DateTime @default(now())
+
+  userA User @relation("EdgeFrom", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("EdgeTo", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}
+
+// ---------------------------------------------------------------------------
+// Interest rankings (FR-19..23) — a contributor's assessment of one interest
+// for one subject.
+// ---------------------------------------------------------------------------
+
+model InterestRanking {
+  id                   String   @id @default(cuid())
+  rankerId             String // the Giver / contributor
+  subjectId            String // the Receiver
+  interestId           String
+  rankValue            Int? // ordinal position or 1-5 rating (open question, Section 13)
+  confidenceUnsure     Boolean  @default(false) // "not sure / don't know" (FR-21)
+  contributedPreOrPost String   @default("pre_invite") // "pre_invite" | "post_invite"
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  ranker   User     @relation("RankingRanker", fields: [rankerId], references: [id], onDelete: Cascade)
+  subject  User     @relation("RankingSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([rankerId, interestId])
+  @@index([subjectId])
+}
+
+// ---------------------------------------------------------------------------
+// Relationship metadata (FR-22) between a specific Giver-Receiver pair.
+// ---------------------------------------------------------------------------
+
+model RelationshipContext {
+  id               String   @id @default(cuid())
+  rankerId         String // the Giver
+  subjectId        String // the Receiver
+  relationshipType String // fixed list, e.g. "sibling" | "parent" | "friend" | "coworker" | "partner" | "other"
+  sharedInterests  String? // JSON array of strings (1-3 shared interests/activities)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ranker  User @relation("RelCtxRanker", fields: [rankerId], references: [id], onDelete: Cascade)
+  subject User @relation("RelCtxSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([rankerId, subjectId])
+}
+
+// ---------------------------------------------------------------------------
+// Private notes & milestones (FR-17/18) — visible only to the authoring Giver.
+// ---------------------------------------------------------------------------
+
+model FriendNote {
+  id        String   @id @default(cuid())
+  ownerId   String // the Giver (author)
+  subjectId String // the friend/target
+  noteText  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User @relation("NoteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  subject User @relation("NoteSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, subjectId])
+}
+
+model MilestoneEntry {
+  id            String   @id @default(cuid())
+  ownerId       String // the Giver (author)
+  subjectId     String // the friend/target
+  occasionLabel String // e.g. "Birthday — Nov"
+  giftIdeaNote  String? // e.g. "thinking something cooking-related"
+  createdAt     DateTime @default(now())
+
+  owner   User @relation("MilestoneOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  subject User @relation("MilestoneSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, subjectId])
+}
+
+// ---------------------------------------------------------------------------
+// Gifting style (FR-24/25) — Giver-side, one-time short quiz.
+// ---------------------------------------------------------------------------
+
+model GiftingStyleProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  defaultBudgetMin Float?
+  defaultBudgetMax Float?
+  philosophyTags   String? // JSON array: "practical" | "experiential" | "sentimental" | "surprise"
+  planningStyle    String? // "plans_ahead" | "last_minute" (informational only in V1)
+  riskTolerance    String? // "safe" | "bold"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Recommendation requests & results (FR-26..31).
+// ---------------------------------------------------------------------------
+
+model RecommendationRequest {
+  id             String   @id @default(cuid())
+  giverId        String
+  receiverId     String
+  occasionTag    String? // "birthday" | "holiday" | "just_because" | "congratulations" | "other" | free text
+  budgetOverride Float?
+  createdAt      DateTime @default(now())
+
+  giver    User                  @relation("RecReqGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver User                  @relation("RecReqReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  result   RecommendationResult?
+
+  @@index([giverId])
+}
+
+model RecommendationResult {
+  id          String   @id @default(cuid())
+  requestId   String   @unique
+  // Ordered JSON array of suggestion objects:
+  // { title, level: "item"|"category", rationale, priceEstimate?, feedback?: "like"|"not_for_them" }
+  suggestions String
+  createdAt   DateTime @default(now())
+
+  request RecommendationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Invites (Flow 3, FR-13/14) — link an unclaimed target to a claim token.
+// ---------------------------------------------------------------------------
+
+model Invite {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  inviterId  String // the Giver who sent it
+  targetId   String // the unclaimed User record being invited
+  email      String?
+  phone      String?
+  status     String    @default("pending") // "pending" | "accepted"
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  inviter User @relation("InviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  target  User @relation("InviteTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([targetId])
+}
