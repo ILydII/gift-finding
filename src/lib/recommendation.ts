@@ -426,6 +426,8 @@ type Candidate = {
   /** Carried for rationale (§7). */
   interestLabel?: string;
   sharedLabel?: string;
+  /** Number of community contributors who corroborated this tag (for rationale). */
+  contributors?: number;
 };
 
 function candidateFromIdea(
@@ -447,6 +449,7 @@ function candidateFromIdea(
     exemptIntimacy: false,
     exemptSentimentality: agg.personallyAnchored,
     interestLabel: agg.signal.label,
+    contributors: agg.signal.community.length,
   };
 }
 
@@ -808,7 +811,9 @@ function buildRationale(
   }
   // Community (Stream C).
   if (c.origins.has("community") && c.interestLabel) {
-    return `${name}'s friends have flagged ${c.interestLabel.toLowerCase()} as a strong interest.`;
+    const n = c.contributors ?? 0;
+    const who = n >= 2 ? `${n} of ${name}'s friends have` : `One of ${name}'s friends has`;
+    return `${who} flagged ${c.interestLabel.toLowerCase()} as a strong interest.`;
   }
   // Receiver self.
   if (c.origins.has("receiver_self") && c.interestLabel) {

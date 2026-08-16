@@ -121,6 +121,13 @@ export default async function RecommendPage({
         <ol className="mt-6 space-y-4">
           {suggestions.map((s, i) => {
             const badge = SLOT_BADGE[s.slotType] ?? SLOT_BADGE.diversified;
+            // The certainty slot only earns "Sure thing" when it's actually
+            // wishlist/gift-idea backed; otherwise it fell back to the best
+            // interest pick (§6 Slot 1 fallback) and shouldn't overclaim.
+            const isBackedCertainty =
+              s.originTrace.includes("wishlist") || s.originTrace.includes("gift_idea_note");
+            const badgeLabel =
+              s.slotType === "certainty" && !isBackedCertainty ? "Top pick" : badge.label;
             return (
               <li
                 key={i}
@@ -130,7 +137,7 @@ export default async function RecommendPage({
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
                   >
-                    {badge.label}
+                    {badgeLabel}
                   </span>
                   {s.level === "category" && (
                     <span className="text-xs text-foreground/40">a direction, not one exact thing</span>
