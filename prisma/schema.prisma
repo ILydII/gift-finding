@@ -42,6 +42,12 @@ model User {
   // "unclaimed" = placeholder created by a Giver (FR-12); "claimed" = real account.
   claimStatus String @default("claimed")
 
+  // Guest Giver support (PRD §5): a brand-new visitor gets a real User row with
+  // isGuest=true, keyed by an opaque token held in an httpOnly cookie. Account
+  // creation merges/upgrades this row — never a separate draft store.
+  isGuest    Boolean @default(false)
+  guestToken String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -317,7 +323,8 @@ model Invite {
   targetId   String // the unclaimed User record being invited
   email      String?
   phone      String?
-  status     String    @default("pending") // "pending" | "accepted"
+  status     String    @default("pending") // "pending" | "accepted" | "declined"
+  expiresAt  DateTime? // PRD FR-16: 30-day tokens; expired links offer a regenerate path
   createdAt  DateTime  @default(now())
   acceptedAt DateTime?
 
@@ -325,4 +332,15 @@ model Invite {
   target  User @relation("InviteTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@index([targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Decline suppression (PRD FR-21) — when a Receiver says "I'd rather not be in
+// this", their record hard-deletes and the address lands here so future
+// invites to it are silently suppressed.
+// ---------------------------------------------------------------------------
+
+model SuppressedEmail {
+  email     String   @id
+  createdAt DateTime @default(now())
 }
