@@ -55,7 +55,7 @@ export async function buildRecommendationInput(
     relationship,
     note,
     milestones,
-    style,
+    pastGifts,
   ] = await Promise.all([
     prisma.user.findUnique({ where: { id: receiverId } }),
     prisma.wishlistItem.findMany({
@@ -74,7 +74,10 @@ export async function buildRecommendationInput(
       where: { ownerId: giverId, subjectId: receiverId },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.giftingStyleProfile.findUnique({ where: { userId: giverId } }),
+    prisma.giftGiven.findMany({
+      where: { giverId, receiverId },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   // Resolve taxonomy labels/categories for the slugs in play.
@@ -185,20 +188,19 @@ export async function buildRecommendationInput(
 
   const relType = relationship?.relationshipType ?? null;
 
-  // Gifting style: the saved profile is the default, but a per-request override
-  // (from the gift-finder form) wins — style/budget belong to the gift, not the account.
+  // Gifting style now lives per-friend on RelationshipContext (moved off the
+  // global user profile). A per-request override (from the gift-finder form)
+  // still wins; budget is per-occasion only, so no stored default here.
   const ov = opts.styleOverride;
+  const savedPhilosophy = parseJsonArray(relationship?.philosophyTags);
+  const savedRisk = relationship?.riskTolerance ?? null;
   const giverStyle =
-    style || ov
+    ov || savedPhilosophy.length || savedRisk
       ? {
-          philosophyTags: ov?.philosophyTags?.length
-            ? ov.philosophyTags
-            : style
-              ? parseJsonArray(style.philosophyTags)
-              : [],
-          riskTolerance: ov?.riskTolerance ?? style?.riskTolerance ?? null,
-          budgetMin: style?.defaultBudgetMin ?? null,
-          budgetMax: style?.defaultBudgetMax ?? null,
+          philosophyTags: ov?.philosophyTags?.length ? ov.philosophyTags : savedPhilosophy,
+          riskTolerance: ov?.riskTolerance ?? savedRisk,
+          budgetMin: null,
+          budgetMax: null,
         }
       : null;
 
@@ -218,5 +220,6 @@ export async function buildRecommendationInput(
     giverNote: note?.noteText ?? null,
     giftIdeaNote: milestone?.giftIdeaNote ?? null,
     budgetOverride: opts.budgetOverride ?? null,
+    pastGifts: pastGifts.map((g) => g.title),
   };
 }

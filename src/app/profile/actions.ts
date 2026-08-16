@@ -4,14 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import {
-  DEFAULT_BUDGET_BANDS,
-  GIFTING_PHILOSOPHIES,
-  PLANNING_STYLES,
-  RISK_TOLERANCES,
-  SELF_CONFIDENCE_FLAGS,
-  GENDER_OPTIONS,
-} from "@/lib/constants";
+import { SELF_CONFIDENCE_FLAGS, GENDER_OPTIONS } from "@/lib/constants";
 
 // Server actions behind /profile — the signed-in user's own personal info
 // (FR-2/3), gifting-style preferences (FR-24/25), and wishlist (FR-9/10/11).
@@ -57,56 +50,9 @@ export async function savePersonalInfo(formData: FormData): Promise<void> {
   redirect("/profile?saved=personal");
 }
 
-// ---------------------------------------------------------------------------
-// Gifting style (FR-24/25) — budget default, philosophy, planning, risk.
-// Introduced lazily before a Giver's first recommendation view (Flow 5); this
-// screen is where it's edited afterward, at any pace.
-// ---------------------------------------------------------------------------
-
-export async function saveGiftingStyle(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
-
-  const bandValue = String(formData.get("budgetBand") ?? "");
-  const band = DEFAULT_BUDGET_BANDS.find((b) => b.value === bandValue);
-
-  const philosophyTags = formData
-    .getAll("philosophy")
-    .map(String)
-    .filter((v) => GIFTING_PHILOSOPHIES.some((p) => p.value === v));
-
-  const planningStyle = PLANNING_STYLES.some(
-    (p) => p.value === formData.get("planningStyle"),
-  )
-    ? String(formData.get("planningStyle"))
-    : null;
-
-  const riskTolerance = RISK_TOLERANCES.some(
-    (r) => r.value === formData.get("riskTolerance"),
-  )
-    ? String(formData.get("riskTolerance"))
-    : null;
-
-  await prisma.giftingStyleProfile.upsert({
-    where: { userId },
-    update: {
-      defaultBudgetMin: band?.min ?? null,
-      defaultBudgetMax: band?.max ?? null,
-      philosophyTags: philosophyTags.length ? JSON.stringify(philosophyTags) : null,
-      planningStyle,
-      riskTolerance,
-    },
-    create: {
-      userId,
-      defaultBudgetMin: band?.min ?? null,
-      defaultBudgetMax: band?.max ?? null,
-      philosophyTags: philosophyTags.length ? JSON.stringify(philosophyTags) : null,
-      planningStyle,
-      riskTolerance,
-    },
-  });
-
-  redirect("/profile?saved=style");
-}
+// Gifting style + budget are no longer a global profile: gifting style is set
+// per-friend on the friend's hub (/friends/[id]), and budget is chosen
+// per-occasion in the gift-finder. (Was saveGiftingStyle here.)
 
 // ---------------------------------------------------------------------------
 // Wishlist (FR-9/10/11) — specific items, optional and secondary, editable

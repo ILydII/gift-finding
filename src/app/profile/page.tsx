@@ -2,16 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import {
-  DEFAULT_BUDGET_BANDS,
-  GIFTING_PHILOSOPHIES,
-  PLANNING_STYLES,
-  RISK_TOLERANCES,
-  GENDER_OPTIONS,
-} from "@/lib/constants";
+import { GENDER_OPTIONS } from "@/lib/constants";
 import {
   savePersonalInfo,
-  saveGiftingStyle,
   addWishlistItem,
   updateWishlistItem,
   deleteWishlistItem,
@@ -53,9 +46,8 @@ export default async function ProfilePage({
     redirect(`/signin?callbackUrl=${encodeURIComponent("/profile")}`);
   }
 
-  const [user, giftingStyle, wishlist, myInterests] = await Promise.all([
+  const [user, wishlist, myInterests] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id } }),
-    prisma.giftingStyleProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.wishlistItem.findMany({
       where: { ownerId: session.user.id },
       orderBy: { createdAt: "asc" },
@@ -81,15 +73,6 @@ export default async function ProfilePage({
     label: i.freeText ?? tagLabelBySlug.get(i.taxonomyTag ?? "") ?? "Unknown",
   }));
 
-  const philosophyTags: string[] = giftingStyle?.philosophyTags
-    ? JSON.parse(giftingStyle.philosophyTags)
-    : [];
-
-  const currentBand = DEFAULT_BUDGET_BANDS.find(
-    (b) =>
-      b.min === (giftingStyle?.defaultBudgetMin ?? null) &&
-      b.max === (giftingStyle?.defaultBudgetMax ?? null),
-  )?.value;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -267,106 +250,6 @@ export default async function ProfilePage({
           >
             Add
           </button>
-        </form>
-      </section>
-
-      {/* Gifting style (FR-24/25) — shapes recommendations when you're the Giver. */}
-      <section className="mt-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
-        <h2 className="font-semibold">How you like to give</h2>
-        <p className="mt-1 text-sm text-foreground/60">
-          The short quiz from before your first set of gift ideas — edit it
-          any time.
-        </p>
-        <form action={saveGiftingStyle} className="mt-4 flex flex-col gap-5">
-          <div>
-            <p className="text-sm font-medium">Usual budget</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {DEFAULT_BUDGET_BANDS.map((b) => (
-                <label key={b.value} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="budgetBand"
-                    value={b.value}
-                    defaultChecked={currentBand === b.value}
-                    className="peer sr-only"
-                  />
-                  <span className="inline-block rounded-full border border-black/15 px-3.5 py-1.5 text-sm transition peer-checked:border-violet peer-checked:bg-violet peer-checked:text-white dark:border-white/20">
-                    {b.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium">Gifting philosophy</p>
-            <p className="text-xs text-foreground/50">Pick any that fit.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {GIFTING_PHILOSOPHIES.map((p) => (
-                <label key={p.value} className="cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="philosophy"
-                    value={p.value}
-                    defaultChecked={philosophyTags.includes(p.value)}
-                    className="peer sr-only"
-                  />
-                  <span className="inline-block rounded-full border border-black/15 px-3.5 py-1.5 text-sm transition peer-checked:border-violet peer-checked:bg-violet peer-checked:text-white dark:border-white/20">
-                    {p.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium">Planning style</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {PLANNING_STYLES.map((p) => (
-                <label key={p.value} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="planningStyle"
-                    value={p.value}
-                    defaultChecked={giftingStyle?.planningStyle === p.value}
-                    className="peer sr-only"
-                  />
-                  <span className="inline-block rounded-full border border-black/15 px-3.5 py-1.5 text-sm transition peer-checked:border-violet peer-checked:bg-violet peer-checked:text-white dark:border-white/20">
-                    {p.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium">Risk tolerance</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {RISK_TOLERANCES.map((r) => (
-                <label key={r.value} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="riskTolerance"
-                    value={r.value}
-                    defaultChecked={giftingStyle?.riskTolerance === r.value}
-                    className="peer sr-only"
-                  />
-                  <span className="inline-block rounded-full border border-black/15 px-3.5 py-1.5 text-sm transition peer-checked:border-violet peer-checked:bg-violet peer-checked:text-white dark:border-white/20">
-                    {r.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="rounded-lg bg-violet px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-            >
-              Save preferences
-            </button>
-          </div>
         </form>
       </section>
 

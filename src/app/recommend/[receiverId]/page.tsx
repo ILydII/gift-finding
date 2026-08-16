@@ -241,20 +241,19 @@ export default async function RecommendPage({
   }
 
   // ---- Request form ----
-  // Prefill gifting style from the giver's saved profile, but let them tune it
-  // per occasion (feedback: budget + style belong to the gift, not the account).
-  const savedStyle = await prisma.giftingStyleProfile.findUnique({
-    where: { userId: giverId },
+  // Prefill gifting style from this friend's saved style (RelationshipContext),
+  // still tunable per occasion. Budget is per-occasion only — no stored default.
+  const relationship = await prisma.relationshipContext.findUnique({
+    where: { rankerId_subjectId: { rankerId: giverId, subjectId: receiverId } },
   });
   let savedPhilosophies: string[] = [];
   try {
-    const parsed = JSON.parse(savedStyle?.philosophyTags ?? "[]");
+    const parsed = JSON.parse(relationship?.philosophyTags ?? "[]");
     if (Array.isArray(parsed)) savedPhilosophies = parsed.map(String);
   } catch {
     savedPhilosophies = [];
   }
-  const savedRisk = savedStyle?.riskTolerance ?? null;
-  const savedBudget = savedStyle?.defaultBudgetMax ?? null;
+  const savedRisk = relationship?.riskTolerance ?? null;
 
   return (
     <div className="mx-auto w-full max-w-xl px-6 py-10">
@@ -300,7 +299,7 @@ export default async function RecommendPage({
               type="number"
               min={1}
               max={100000}
-              placeholder={savedBudget ? `Up to $${savedBudget} (your usual)` : "Up to…"}
+              placeholder="Up to…"
               className="w-full rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
             />
           </div>

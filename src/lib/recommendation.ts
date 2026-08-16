@@ -85,6 +85,8 @@ export type RecommendationInput = {
   /** The milestone gift-idea note, if one was logged (Stream B, soft wishlist). */
   giftIdeaNote?: string | null;
   budgetOverride?: number | null;
+  /** Titles of gifts already given to this person — filtered out to avoid repeats. */
+  pastGifts?: string[];
 };
 
 export type GiftSuggestion = {
@@ -615,7 +617,15 @@ function generateCandidates(input: RecommendationInput): Candidate[] {
       existing.personallyAnchored = existing.personallyAnchored || c.personallyAnchored;
     }
   }
-  return [...byTitle.values()];
+
+  // Avoid repeats: drop any candidate that matches something already given.
+  const past = (input.pastGifts ?? []).map((t) => t.toLowerCase().trim()).filter(Boolean);
+  const deduped = [...byTitle.values()];
+  if (past.length === 0) return deduped;
+  return deduped.filter((c) => {
+    const t = c.title.toLowerCase();
+    return !past.some((p) => t === p || (p.length > 6 && t.includes(p)) || (t.length > 6 && p.includes(t)));
+  });
 }
 
 /** Map a free-text shared-interest string to a taxonomy category, if obvious. */
