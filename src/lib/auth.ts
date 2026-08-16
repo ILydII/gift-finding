@@ -20,6 +20,23 @@ const credentialsSchema = z.object({
 // entry points (see PRD addendum — account timing reversed from the
 // original guest-mode design), so this is the single front door.
 const providers: NextAuthConfig["providers"] = [
+  // Passwordless demo sign-in (provider id: "demo"): a first name (+ optional
+  // age → birth year) creates an account and signs in immediately. Email
+  // delivery isn't wired up, so this is the working onboarding path for now.
+  Credentials({
+    id: "demo",
+    name: "Demo",
+    credentials: { name: {}, birthYear: {} },
+    async authorize(raw) {
+      const name = String(raw?.name ?? "").trim().slice(0, 60);
+      if (!name) return null;
+      const by = z.coerce.number().int().min(1900).max(9999).safeParse(raw?.birthYear);
+      const user = await prisma.user.create({
+        data: { name, birthYear: by.success ? by.data : null, claimStatus: "claimed" },
+      });
+      return { id: user.id, name: user.name };
+    },
+  }),
   // Magic link (provider id: "resend"). Delivery goes through src/lib/email —
   // real sends when RESEND_API_KEY is set, console logging otherwise, so the
   // full sign-in flow is walkable in local dev with no email infrastructure.

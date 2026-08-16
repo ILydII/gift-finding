@@ -1,5 +1,5 @@
 import {
-  signInWithMagicLink,
+  demoSignIn,
   signInWithGoogle,
   signInWithPassword,
   registerWithPassword,
@@ -30,74 +30,51 @@ export function AccountGate({
       <h2 className="font-semibold">{headline}</h2>
       <p className="mt-1 text-sm text-foreground/60">{subline}</p>
 
-      <form action={signInWithMagicLink} className="mt-4 flex flex-col gap-4">
+      <form action={demoSignIn} className="mt-4 flex flex-col gap-4">
         <input type="hidden" name="redirectTo" value={redirectTo} />
 
         <div>
           <p className="text-sm font-medium text-foreground/80">About you</p>
           <p className="text-xs text-foreground/50">
-            Optional — helps friends give you age-appropriate ideas. Skip it
-            if you&apos;d rather.
+            Just a first name to start (age optional) — we&apos;ll set up your
+            profile next.
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <input
               name="name"
+              required
               placeholder="First name"
               maxLength={60}
               className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20"
             />
             <input
-              name="birthYear"
+              name="age"
               type="number"
               inputMode="numeric"
-              placeholder="Birth year"
-              min={1900}
-              max={new Date().getFullYear()}
+              placeholder="Age (optional)"
+              min={1}
+              max={119}
               className="rounded-lg border border-black/15 bg-background px-3 py-2 text-sm outline-none transition focus:border-violet/40 dark:border-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
+          >
+            Continue
+          </button>
           {googleEnabled && (
             <button
               type="submit"
               formAction={signInWithGoogle}
-              className="w-full rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
+              className="w-full rounded-lg border border-black/15 px-4 py-2.5 font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
             >
               Continue with Google
             </button>
           )}
-
-          <label
-            htmlFor="magic-email"
-            className="text-sm font-medium text-foreground/80"
-          >
-            {googleEnabled ? "Or use your email" : "Your email"}
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="magic-email"
-              name="email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              className="min-w-0 flex-1 rounded-lg border border-black/15 bg-background px-3 py-2.5 outline-none transition focus:border-violet/40 dark:border-white/20"
-            />
-            <button
-              type="submit"
-              className={
-                googleEnabled
-                  ? "rounded-lg border border-black/15 px-4 py-2.5 font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
-                  : "rounded-lg bg-violet px-4 py-2.5 font-medium text-white transition hover:opacity-90"
-              }
-            >
-              Email me a link
-            </button>
-          </div>
-          <p className="text-xs text-foreground/50">
-            No password — we&apos;ll email you a one-time sign-in link.
-          </p>
         </div>
       </form>
 

@@ -5,6 +5,8 @@ import { AccountGate } from "@/components/AccountGate";
 export const dynamic = "force-dynamic";
 
 const ERROR_COPY: Record<string, string> = {
+  demo_name: "Enter a first name to continue.",
+  demo: "Something went wrong — give it another try.",
   invalid_email: "That doesn't look like an email address — try again?",
   email_send: "We couldn't send the sign-in link. Give it another try.",
   bad_credentials: "That email/password combination didn't match.",
@@ -35,8 +37,8 @@ export default async function SignInPage({
       </h1>
       <p className="mt-1 text-sm text-foreground/60">
         {isInviteContext
-          ? "Sign in to see what they've already figured out about you."
-          : "Sign in once, then tell us who you're shopping for."}
+          ? "Add your name to see what they've already figured out about you."
+          : "Just your name to start — we'll set up your profile, then your friends."}
       </p>
 
       {error && (
@@ -51,8 +53,8 @@ export default async function SignInPage({
       <div className="mt-6">
         <AccountGate
           redirectTo={callbackUrl}
-          headline="Sign in"
-          subline="Google, or we'll email you a one-time link — either way, no password to remember."
+          headline="Get started"
+          subline="No password, no email — just your first name and you're in."
         />
       </div>
     </div>

@@ -52,6 +52,36 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
   await signIn("google", { redirectTo });
 }
 
+/** Demo onboarding: name (+ optional age) → account → straight to your profile.
+ *  The working sign-in path while email delivery is off. */
+export async function demoSignIn(formData: FormData): Promise<void> {
+  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
+  // Land new users on their own profile first (unless they came from a
+  // specific place, e.g. an invite link).
+  let redirectTo = safeRedirectTo(formData.get("redirectTo"));
+  if (redirectTo === "/") redirectTo = "/profile";
+
+  if (!name) {
+    redirect(`/signin?error=demo_name&callbackUrl=${encodeURIComponent(redirectTo)}`);
+  }
+
+  // Accept an age and store it as a birth year.
+  const ageNum = Number(String(formData.get("age") ?? "").trim());
+  const birthYear =
+    Number.isFinite(ageNum) && ageNum > 0 && ageNum < 120
+      ? String(new Date().getFullYear() - Math.floor(ageNum))
+      : "";
+
+  try {
+    await signIn("demo", { name, birthYear, redirectTo });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      redirect(`/signin?error=demo&callbackUrl=${encodeURIComponent(redirectTo)}`);
+    }
+    throw err; // NEXT_REDIRECT on success must propagate
+  }
+}
+
 export async function signInWithPassword(formData: FormData): Promise<void> {
   const redirectTo = safeRedirectTo(formData.get("redirectTo"));
   await stashPendingProfile(formData);
